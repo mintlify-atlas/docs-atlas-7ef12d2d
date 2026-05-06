@@ -1,0 +1,136 @@
+---
+title: "V&V skills: ISO 9283, FAT/SAT, HIL, and field acceptance"
+description: "Four skill pairs: ISO 9283 performance tests, FAT/SAT acceptance protocol, HIL fault injection catalog, OEE-based field acceptance with handover package."
+---
+
+The Verification and Validation cluster covers every formal test phase from factory floor characterization through on-site handover. Four builder + reviewer pairs produce the structured test records required at each V&V gate: ISO 9283:1998 pose accuracy and repeatability measurements, a combined FAT/SAT acceptance protocol with customer signoff sheets, a Hardware-in-the-Loop fault injection catalog covering all major failure modes, and an OEE-based field acceptance protocol with a complete documentation handover package. The cluster sits at the end of the V&V lane and feeds the operational cluster: field acceptance completion triggers the SOP finalization and operator training sign-off.
+
+<CardGroup cols={2}>
+  <Card title="iso9283-performance-test-builder" icon="ruler-combined" href="/skills/iso9283-performance-test">
+    Produces pose accuracy (AP), pose repeatability (RP), and path velocity accuracy test records per ISO 9283:1998.
+  </Card>
+  <Card title="iso9283-performance-test-reviewer" icon="circle-check" href="/skills/iso9283-performance-test">
+    Validates measurement conditions, sample counts, and statistical method compliance; produces a KPI dashboard with pass/fail per metric.
+  </Card>
+  <Card title="robot-acceptance-protocol-builder" icon="clipboard-list" href="/skills/robot-acceptance-protocol">
+    Generates a combined Factory Acceptance Test and Site Acceptance Test protocol with customer signoff sheets.
+  </Card>
+  <Card title="robot-acceptance-protocol-reviewer" icon="circle-check" href="/skills/robot-acceptance-protocol">
+    Confirms test coverage against the cell scope, verifies signoff authority assignments, and flags missing acceptance criteria.
+  </Card>
+  <Card title="robot-hil-test-catalog-builder" icon="microchip" href="/skills/robot-hil-test-catalog">
+    Creates a Hardware-in-the-Loop test catalog covering sensor fault injection, communication loss, power fault, and E-stop scenarios.
+  </Card>
+  <Card title="robot-hil-test-catalog-reviewer" icon="circle-check" href="/skills/robot-hil-test-catalog">
+    Audits fault coverage against the safety I/O matrix, verifies expected response times, and produces a findings table with gaps.
+  </Card>
+  <Card title="robot-field-acceptance-builder" icon="map-pin" href="/skills/robot-field-acceptance">
+    Builds an OEE-based on-site acceptance protocol with availability, performance, and quality targets plus a handover checklist.
+  </Card>
+  <Card title="robot-field-acceptance-reviewer" icon="circle-check" href="/skills/robot-field-acceptance">
+    Validates OEE target rationale, confirms documentation package completeness, and signs off the handover checklist.
+  </Card>
+</CardGroup>
+
+## Skill pair details
+
+### iso9283-performance-test-builder + reviewer
+
+ISO 9283:1998 defines test methods for industrial robot performance characteristics. The builder produces a structured test record workbook capturing the measurement conditions, raw pose data, and computed statistics for three primary metrics.
+
+<AccordionGroup>
+  <Accordion title="Pose accuracy (AP)">
+    Pose accuracy measures the deviation between the command pose and the mean attained pose over 30 repetitions at each of the five ISO 9283 test cube vertices. The builder records: command pose (x, y, z, Rx, Ry, Rz), attained pose statistics (mean, standard deviation per axis), and the computed AP\_P (position) and AP\_O (orientation) values in mm and degrees respectively.
+  </Accordion>
+  <Accordion title="Pose repeatability (RP)">
+    Pose repeatability measures the scatter of attained poses around the mean attained pose — distinct from accuracy, which measures the offset from command. The builder captures RP\_P and RP\_O as the radius of the sphere or angle enclosing 99.73% of attained poses (3σ) at each test point.
+  </Accordion>
+  <Accordion title="Path velocity accuracy">
+    Path velocity accuracy tests are conducted on a straight-line path at the commanded velocity. The builder records commanded velocity, actual mean velocity, velocity standard deviation, and the computed velocity accuracy (AV) and velocity repeatability (RV) as percentages of commanded velocity.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  ISO 9283 requires tests at 100% rated load and at 10% rated load unless the robot is single-payload rated. The builder includes a load condition column for each test point. The reviewer flags any test matrix with missing load conditions.
+</Note>
+
+---
+
+### robot-acceptance-protocol-builder + reviewer
+
+The acceptance protocol builder generates a single xlsx workbook that covers both the Factory Acceptance Test (FAT) and the Site Acceptance Test (SAT). Combining both into one document ensures that FAT test evidence is directly traceable to the SAT criteria executed after installation.
+
+<Steps>
+  <Step title="FAT scope definition">
+    The FAT covers tests executable at the integrator's facility: functional cycle testing, safety function verification (E-stop response time, safety-rated soft limits), axis performance against ISO 9283 targets, and HMI/SCADA interface checks. Each test records the acceptance criterion, measurement method, pass/fail result, and witness signature block.
+  </Step>
+  <Step title="Customer signoff sheet">
+    The FAT signoff sheet lists all FAT line items with result summary, open punch items (A-items block shipment; B-items are tracked to SAT), customer representative name, and signature with date. The builder generates a separate signoff sheet per test section.
+  </Step>
+  <Step title="SAT scope definition">
+    The SAT covers tests that require the installed cell: production cycle at full rate for a defined run-off period (typically 4–8 hours), communication with plant SCADA/MES, utility connections (compressed air, electrical supply quality), and final safety function re-verification in the installed configuration.
+  </Step>
+  <Step title="Final SAT signoff and punch list closure">
+    The SAT signoff confirms all A-items are resolved, documents any B-item carry-over with agreed closure dates, and transfers legal ownership. The reviewer checks that no A-items remain open at final signoff.
+  </Step>
+</Steps>
+
+---
+
+### robot-hil-test-catalog-builder + reviewer
+
+The HIL test catalog documents fault injection tests executed on Hardware-in-the-Loop rigs before the robot controller is integrated with the physical robot. HIL testing de-risks failure mode responses before site installation.
+
+<AccordionGroup>
+  <Accordion title="Sensor fault injection tests">
+    Each sensor fault test specifies: the sensor under test (vision system, LiDAR, force/torque, proximity), the fault type (signal loss, stuck-at-value, out-of-range, intermittent), the injection method (hardware disconnect / signal simulation / software override), the expected controller response, and the measured response time. Typical target: < 100 ms detection, < 500 ms safe state.
+  </Accordion>
+  <Accordion title="Communication loss tests">
+    Covers: fieldbus loss (EtherCAT, PROFINET), PLC heartbeat loss, vision system network drop, and ROS2 DDS participant failure. Each test records the communication interface, loss duration injected, expected recovery behavior, and actual behavior. Tests must cover both transient loss (< 1 s) and sustained loss (> 30 s).
+  </Accordion>
+  <Accordion title="Power fault tests">
+    Covers: 24 V DC control power interruption, 480 V AC mains interruption, UPS switchover latency, and pneumatic supply loss. Each power fault test records the affected subsystems, expected robot behavior (controlled stop or coast-to-stop), the measured stop distance, and comparison against the ISO 10218-1 Category 0/1/2 stop performance specification.
+  </Accordion>
+  <Accordion title="E-stop tests">
+    E-stop tests cover all initiating devices: operator panel E-stop, safety PLC software E-stop, external area scanner E-stop, and robot controller internal E-stop. Each test records: initiating device, robot velocity at initiation, measured stop time, measured stop distance, and compliance against Cat B/1/2/3/4 architecture as documented in the interlock and E-stop architecture skill output.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  HIL test catalog coverage is driven by the safety I/O matrix and the interlock architecture upstream artifacts. Running the HIL builder before those artifacts are finalized will produce an incomplete test catalog. Always follow the V&V lane chain order.
+</Warning>
+
+---
+
+### robot-field-acceptance-builder + reviewer
+
+The field acceptance builder produces the on-site acceptance protocol and handover package used to formally transfer the cell from the integrator to the customer. Acceptance criteria are expressed in OEE terms so that the customer's production team can evaluate against their plant KPIs.
+
+**OEE decomposition for robot cell acceptance:**
+
+| OEE component | Formula | Typical acceptance target |
+|--------------|---------|--------------------------|
+| Availability | Uptime / Planned production time | ≥ 95% over run-off period |
+| Performance | Actual cycle count / Theoretical max | ≥ 98% of rated cycle rate |
+| Quality | Good parts / Total parts produced | ≥ 99.5% |
+| **OEE** | Availability × Performance × Quality | **≥ 92%** |
+
+<AccordionGroup>
+  <Accordion title="Run-off protocol">
+    The field acceptance run-off is conducted over an agreed production period (typically 8–24 hours of continuous operation at full rate and full payload). The builder generates a run-off data collection sheet recording downtime events by category (mechanical, electrical, software, process) and cycle count per hour.
+  </Accordion>
+  <Accordion title="Handover checklist">
+    The handover checklist covers: as-built drawing package, PLC/safety PLC program backup with version hash, robot controller backup with program and tool/workobject data, spare parts kit against the recommended spare parts list, operator training sign-off records, safety validation report, CE technical file or ANSI safety file, and LOTO procedure posted at the cell.
+  </Accordion>
+  <Accordion title="Documentation package">
+    The documentation package index lists every document by title, document number, revision, and file location. The reviewer confirms that all items on the index are present and that revision numbers match the as-built configuration.
+  </Accordion>
+</AccordionGroup>
+
+## V&V lane chain
+
+```text
+ISO 9283 Performance → Acceptance Protocol (FAT/SAT) → HIL Catalog → Field Acceptance
+```
+
+ISO 9283 results feed the acceptance protocol as the quantitative performance criterion baseline. The HIL catalog is executed in parallel with the FAT. Field acceptance closes the V&V lane and triggers handover to the operational cluster (SOP, LOTO, operator training).

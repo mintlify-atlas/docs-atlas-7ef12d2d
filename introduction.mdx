@@ -1,0 +1,86 @@
+---
+title: "Robotics Skills Suite: automate engineering docs with Claude"
+description: "76 Claude skills — 38 builders and 38 reviewers — automating every structured xlsx deliverable across the industrial robotics lifecycle."
+---
+
+The Robotics Skills Suite is a curated set of 38 builder skills and 38 matching reviewer skills that automate every structured xlsx deliverable in the modern industrial-robotics lifecycle. Every phase that historically required hours of hand-editing in Excel now has a builder that produces an audit-ready, multi-tab xlsx workbook and a reviewer that confirms it against the relevant standard. Skills hand off via stable xlsx contracts, so a change upstream in the Risk Assessment automatically flows to every downstream phase — PLr determination, compliance matrix, and Declaration of Conformity — without manual copy-paste.
+
+## The builder + reviewer pattern
+
+Every deliverable in the suite follows the same two-skill pattern. The **builder** skill takes a JSON input (plus the upstream artifact when chaining) and produces a structured multi-tab xlsx workbook with NAVY/Calibri styling and PLr/SIL color coding. The **reviewer** skill runs a confirmation-measures checklist over the builder's output and produces a separate visual dashboard — it never modifies the source artifact.
+
+<CardGroup cols={2}>
+  <Card title="Builder skills" icon="hammer">
+    Produce multi-tab, audit-ready xlsx workbooks. Output tabs are named, formulas are live where appropriate, and styling matches what a quality-management system expects.
+  </Card>
+  <Card title="Reviewer skills" icon="chart-bar">
+    Produce a visual dashboard with KPI tiles, a pie chart, a compliance bar, a stacked rating breakdown by section, and a findings table. Gaps land in Recommended Actions — the source artifact is never touched.
+  </Card>
+</CardGroup>
+
+<Note>
+  Because reviewers never modify source artifacts, you can run a reviewer at any time to get an independent confirmation-measures view — even on artifacts produced outside the suite.
+</Note>
+
+## Who this is for
+
+The suite is designed for the engineers and teams who ship real robot cells and autonomous systems:
+
+- **Robot integrators** producing ISO 10218-2 / ANSI R15.06 compliance documentation for every cell delivery
+- **OEM machine builders** generating CE marking and ANSI safety files at scale
+- **Cobot deployers** running ISO/TS 15066 biomechanical validation, SSM, and PFL plans
+- **AMR / AGV operators** executing ISO 3691-4 risk assessments and fleet manager architectures
+- **ROS2 development teams** producing system architecture, URDF, behavior tree, Nav2, and TF spec documents
+- **OT cybersecurity teams** running IEC 62443-3-2 risk assessments and zone and conduit segmentation
+- **AI/ML in robotics teams** producing datasheets for datasets, model cards, and perception test catalogs
+
+## The ten skill clusters
+
+The 76 skills are organized into ten engineering clusters that map to the phases of the robotics lifecycle. Each cluster has its own page with the full skill table and standard references.
+
+<CardGroup cols={2}>
+  <Card title="Foundation & Compliance" icon="shield-check" href="/clusters/foundation">
+    ISO 12100 risk assessment, machinery safety lifecycle plan, robot cell scope, ISO 13849-1 PLr / IEC 62061 SIL determination, ISO 10218-1/2 and ANSI R15.06 compliance matrices, and CE Declaration of Conformity. This is the trunk of the main chain — 8 builder + reviewer pairs.
+  </Card>
+  <Card title="Collaborative Robots" icon="robot" href="/clusters/cobot">
+    ISO/TS 15066 biomechanical limits per body region, Speed and Separation Monitoring (SSM) with Sp formula, Power and Force Limiting (PFL) with biofidelic measurements, and hand-guiding device specification. 4 pairs.
+  </Card>
+  <Card title="Autonomous Mobile Robots" icon="truck" href="/clusters/amr-mobile">
+    ISO 3691-4 driverless industrial truck risk assessment, operating envelope with hazard zone mapping, fleet manager architecture with VDA 5050 coordination, and wireless coexistence planning for Wi-Fi / UWB / 5G. 4 pairs.
+  </Card>
+  <Card title="Cell Design" icon="diagram-project" href="/clusters/cell-design">
+    Robot cell layout with fence, light curtain, and work zones; EOAT specification; safety I/O matrix with F-DI/F-DO and response times; interlock and E-stop architecture with Cat B through Cat 4 ratings. 4 pairs.
+  </Card>
+  <Card title="Operations & Training" icon="clipboard" href="/clusters/operational">
+    Standard Operating Procedure (SOP) covering pre-start, normal operation, fault recovery, and shutdown; OSHA 1910.147 lockout/tagout procedure; per-role operator training qualification matrix. 3 pairs.
+  </Card>
+  <Card title="ROS2 Architecture" icon="code" href="/clusters/ros2">
+    ROS2 system architecture with node, topic, service, action, lifecycle, and DDS QoS; URDF/xacro kinematic and inertial spec; BehaviorTree.CPP node and blackboard spec; Nav2 costmap, planner, and recovery config; TF tree per REP 105 / REP 103. 5 pairs.
+  </Card>
+  <Card title="Verification & Validation" icon="flask" href="/clusters/vv">
+    ISO 9283 pose accuracy, repeatability, and path velocity; FAT and SAT acceptance protocol with customer signoff; HIL test catalog covering sensor fault, comm loss, power fault, and E-stop; OEE-based field acceptance with handover documentation. 4 pairs.
+  </Card>
+  <Card title="AI/ML Governance" icon="brain" href="/clusters/aiml-governance">
+    Datasheets for Datasets per Gebru et al., model cards per Mitchell et al. with per-slice fairness metrics, and perception test catalogs covering edge cases, adversarial inputs, and FP/FN scenarios. 3 pairs.
+  </Card>
+  <Card title="Industrial Cybersecurity" icon="lock" href="/clusters/cybersecurity">
+    IEC 62443-3-2 risk assessment with Security Level Targets per FR1–FR7, OT asset inventory with firmware and patch status, and zone and conduit plan with protocol allowlists. 3 pairs.
+  </Card>
+  <Card title="Standards reference" icon="book-open" href="/reference/standards">
+    Full index of all standards covered: ISO, IEC, ANSI/RIA, OSHA, EU Machinery Regulation, REP, ROS 2 distros, and AI/ML governance frameworks.
+  </Card>
+</CardGroup>
+
+## The chain compounding mechanism
+
+The suite's core advantage is that skills hand off via stable xlsx contracts. Every builder produces an xlsx workbook with named, versioned tabs. Downstream builders read from those named tabs as their input — so when you update a hazard severity in the ISO 12100 Risk Assessment, the new risk number flows automatically to the PLr determination, the compliance matrix, and the Declaration of Conformity.
+
+This chain runs across eight lanes — Foundation, Cobot, AMR, Cell+Ops, ROS2, V&V, AI/ML, and Cybersecurity — and is documented in detail in [The Chain](/the-chain).
+
+<Tip>
+  Start with the Foundation lane. The ISO 12100 Risk Assessment xlsx is consumed by five downstream skills. Getting that workbook right first pays dividends across the entire project.
+</Tip>
+
+## Companion suite
+
+The Robotics Skills Suite is the counterpart to the [Automotive Skills Suite](https://github.com/jherrodthomas/automotive-skills-suite), which covers ISO 26262, ISO/SAE 21434, IATF 16949, ASPICE, AUTOSAR, and V&V in 152 skills using the same builder + reviewer pattern. Together they cover the two largest standards-driven engineering verticals.

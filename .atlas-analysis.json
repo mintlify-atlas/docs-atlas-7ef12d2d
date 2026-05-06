@@ -1,23 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Robotics Skills Suite",
+  "projectType": "general",
+  "projectName": "Robotics Skills Suite",
+  "projectDescription": "76 audit-ready Claude skills automating industrial robot, cobot, AMR, ROS2, V&V, AI/ML, and IEC 62443 lifecycle documentation as 38 builder + reviewer pairs.",
   "theme": "aspen",
-  "colors": {
-    "primary": "#94cb04",
-    "light": "#545454"
-  },
-  "favicon": "https://media.brand.dev/288cc7c4-5cef-4376-950b-bdf0083eedae.png",
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/jherrodthomas/robotics-skills-suite"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/jherrodthomas/robotics-skills-suite"
-    }
-  },
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
   "navigation": {
     "tabs": [
       {
@@ -120,5 +108,57 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "38 builder + 38 reviewer skill pairs covering the full industrial robotics lifecycle",
+    "Audit-ready xlsx workbook outputs with NAVY/Calibri styling and PLr/SIL color coding",
+    "Chain compounding via stable xlsx contracts — upstream changes propagate automatically downstream",
+    "Visual dashboard reviewer outputs with KPI tiles, pie charts, compliance bars, and findings tables",
+    "Coverage of ISO 12100, ISO 13849-1, IEC 62061, ISO 10218-1/-2:2025, ISO/TS 15066, ISO 3691-4, IEC 62443",
+    "ROS2 architecture artifacts including URDF, behavior trees, Nav2 config, and TF tree specs",
+    "AI/ML governance artifacts: datasheets for datasets, model cards, and perception test catalogs",
+    "IEC 62443 industrial cybersecurity risk assessment and OT asset inventory",
+    "Bundled download of all 76 skills as a single zip file",
+    "Compatible with Claude Desktop and Cowork via .skill file installation"
+  ],
+  "publicApiSurface": [
+    "iso12100-risk-assessment-builder",
+    "machinery-safety-lifecycle-plan-builder",
+    "robot-cell-scope-builder",
+    "iso13849-plr-builder",
+    "iec62061-sil-builder",
+    "iso10218-compliance-matrix-builder",
+    "ansi-r1506-compliance-matrix-builder",
+    "declaration-of-conformity-builder",
+    "iso15066-biomechanical-limits-builder",
+    "ssm-plan-builder",
+    "pfl-plan-builder",
+    "cobot-hand-guiding-builder",
+    "iso3691-4-risk-assessment-builder",
+    "operating-envelope-builder",
+    "fleet-manager-architecture-builder",
+    "wireless-coexistence-plan-builder",
+    "robot-cell-layout-builder",
+    "eoat-spec-builder",
+    "safety-io-matrix-builder",
+    "interlock-estop-architecture-builder",
+    "robot-sop-builder",
+    "loto-procedure-builder",
+    "operator-training-matrix-builder",
+    "ros2-system-architecture-builder",
+    "urdf-model-spec-builder",
+    "behavior-tree-spec-builder",
+    "nav2-config-builder",
+    "tf-tree-spec-builder",
+    "iso9283-performance-test-builder",
+    "robot-acceptance-protocol-builder",
+    "robot-hil-test-catalog-builder",
+    "robot-field-acceptance-builder",
+    "dataset-documentation-builder",
+    "model-card-builder",
+    "perception-test-catalog-builder",
+    "iec62443-risk-assessment-builder",
+    "ot-asset-inventory-builder",
+    "zone-conduit-plan-builder"
+  ]
 }

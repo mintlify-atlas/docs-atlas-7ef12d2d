@@ -1,0 +1,153 @@
+---
+title: "AMR operating envelope zone plan builder and reviewer"
+description: "Define AMR operational, restricted, no-go, and charging zones with boundary enforcement methods per ISO 3691-4:2020 and ANSI/RIA R15.08."
+---
+
+The AMR operating envelope builder produces a structured xlsx workbook that translates the hazard identification outcomes of the upstream ISO 3691-4 risk assessment into a facility-level zone classification system. The workbook defines the spatial boundaries of all operational zones through which AMRs travel, the restricted zones where speed or access is limited, no-go exclusion areas, and charging or staging locations. Each zone boundary is specified with its enforcement method — physical barrier, virtual geofence, or map-based exclusion — providing the operational safety framework that the fleet manager architecture must implement.
+
+<Tabs>
+  <Tab title="Builder">
+    The builder skill ingests the ISO 3691-4 risk assessment xlsx and a facility layout description, then produces a complete operating envelope specification workbook structured for direct use by fleet manager configuration engineers.
+
+    **Trigger phrase**
+
+    ```text
+    Define the operating envelope for [AMR fleet/facility]
+    ```
+
+    **Workbook tabs**
+
+    <Steps>
+      <Step title="Zone Register">
+        All defined zones with zone ID, zone type, description, boundary definition method, and link to the risk assessment hazard(s) that motivated the zone classification.
+      </Step>
+      <Step title="Operational Zones">
+        Normal AMR travel corridors with dimensions, maximum permitted speed, priority routing rules, and pedestrian co-location policy (shared or segregated).
+      </Step>
+      <Step title="Restricted Zones">
+        Areas with reduced speed limits or conditional access (e.g., assembly areas, pedestrian crossing points, narrow aisles). Speed limit, access condition, and enforcement method per zone.
+      </Step>
+      <Step title="No-Go Zones">
+        Absolute exclusion areas where AMR entry is prohibited under all conditions. Boundary definition, enforcement method, and consequence of boundary breach.
+      </Step>
+      <Step title="Charging and Staging Zones">
+        Charging station locations, staging/queuing areas, and dock interface zones with approach path specification and docking alignment requirements.
+      </Step>
+      <Step title="Boundary Enforcement Matrix">
+        Tabular summary of all zone boundaries with enforcement method (physical barrier, virtual geofence, fleet map exclusion, safety scanner zone) and verification test reference.
+      </Step>
+    </Steps>
+
+    **Zone type definitions**
+
+    <CardGroup cols={2}>
+      <Card title="Operational zones" icon="road">
+        Normal AMR travel areas where the vehicle operates at full design speed. Pedestrian co-location rules apply. Defined by facility aisle map with dimensional tolerances.
+      </Card>
+      <Card title="Restricted zones" icon="traffic-cone">
+        Areas where AMR speed is reduced or access is gated by a conditional interlock (e.g., light curtain, door interlock, fleet manager permission). Typical reduced speed: 0.5–1.0 m/s.
+      </Card>
+      <Card title="No-go zones" icon="circle-xmark">
+        Hard exclusion areas. Examples: electrical switchgear rooms, active loading docks, stairwells. Enforced by map exclusion AND at least one of: physical barrier, safety scanner zone, geofence.
+      </Card>
+      <Card title="Charging zones" icon="battery-full">
+        Dedicated docking and charging areas. AMR approaches at reduced speed (≤0.3 m/s typical), aligns to charging contact, and enters a parked/charging state. Not shared with pedestrian traffic during charging.
+      </Card>
+    </CardGroup>
+
+    **Boundary enforcement methods**
+
+    <CardGroup cols={2}>
+      <Card title="Physical barriers" icon="block-brick">
+        Fixed fencing, bollards, or lane markings providing an infrastructure-enforced boundary. Most reliable but least flexible. Required for no-go zones in high-consequence areas.
+      </Card>
+      <Card title="Virtual geofencing" icon="draw-polygon">
+        GPS or UWB position-based boundary enforcement. AMR stops or re-routes when its position enters the geofenced exclusion area. Requires positioning system integrity assessment.
+      </Card>
+      <Card title="Map-based exclusion" icon="map">
+        Fleet manager map contains exclusion polygons that the path planner treats as impassable. Effective for operational zones but requires map update control procedure for dynamic changes.
+      </Card>
+      <Card title="Safety scanner zones" icon="radar">
+        On-vehicle safety-rated LiDAR zones (protective field, warning field) configured to detect boundary exceedance. Enforced by the vehicle safety controller — independent of fleet manager.
+      </Card>
+    </CardGroup>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill ingests the operating envelope xlsx and the upstream ISO 3691-4 risk assessment xlsx, then produces a confirmation-measures checklist and visual dashboard confirming zone coverage against the identified hazard set.
+
+    **Dashboard components**
+
+    <CardGroup cols={2}>
+      <Card title="KPI tile: zone coverage" icon="map-location-dot">
+        Count of risk assessment hazards that are addressed by at least one zone classification vs. total hazards in the upstream assessment.
+      </Card>
+      <Card title="Zone type distribution" icon="chart-pie">
+        Facility area breakdown by zone type (operational / restricted / no-go / charging) as a proportion of total facility floor area.
+      </Card>
+      <Card title="Enforcement method matrix" icon="table">
+        Heat map of zone boundaries × enforcement methods, highlighting any zone boundary with a single enforcement mechanism (insufficient redundancy for high-consequence zones).
+      </Card>
+      <Card title="Findings table" icon="triangle-exclamation">
+        Non-conformances with severity, affected zone, and recommended corrective action.
+      </Card>
+    </CardGroup>
+
+    **Reviewer checks**
+
+    <AccordionGroup>
+      <Accordion title="Zone boundary completeness">
+        Verifies that every hazardous area identified in the upstream risk assessment is covered by an appropriate zone classification, and that no area with a High or Medium residual risk has been classified as an unrestricted operational zone.
+      </Accordion>
+      <Accordion title="Boundary enforcement method specification">
+        Confirms that every zone boundary has at least one specified enforcement method, and that high-consequence no-go zone boundaries have at least two independent enforcement mechanisms (defence in depth).
+      </Accordion>
+      <Accordion title="No-go zone coverage of hazardous areas">
+        Checks that no-go zones are defined wherever the risk assessment identified hazards of severity "Catastrophic" (fatality/permanent disability) and that the zone boundary provides sufficient clearance from the hazardous area to account for AMR stopping distance at maximum approach speed.
+      </Accordion>
+      <Accordion title="Restricted zone speed limit justification">
+        Reviews restricted zone speed limits for consistency with the stopping distance of the AMR at each limit, confirming that the detection system can detect a stationary person and bring the AMR to a stop within the defined restricted zone boundary.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+<Note>
+  **Chain position — intermediate node in the AMR lane.**
+  Upstream dependency:
+  - [`iso3691-4-risk-assessment`](/skills/iso3691-4-risk-assessment) — provides the hazard identification and risk level inputs that drive zone classification decisions
+
+  Downstream consumer:
+  - [`fleet-manager-architecture`](/skills/fleet-manager-architecture) — implements the zone definitions as traffic management zones and no-go polygons in the fleet management system
+</Note>
+
+## Standard reference
+
+**ISO 3691-4:2020, Section 5.6** — *Operating area* and **Section 5.7** — *Safeguarding*
+
+**ANSI/RIA R15.08-2, Section 7** — *Site risk assessment and operating environment*
+
+ISO 3691-4 requires that the operating area be defined and that segregation measures be implemented where the risk assessment identifies the need. R15.08 Part 2 adds site-level requirements for zone boundary documentation and periodic re-validation.
+
+<Info>
+  The operating envelope is a living document. Facility layout changes (new equipment, rerouted pedestrian paths, new charging locations) require a zone register update followed by a re-review against the risk assessment. The fleet manager architecture must have a controlled map update procedure that includes operating envelope validation.
+</Info>
+
+## Zone boundary specification format
+
+Each zone boundary is documented using a coordinate-referenced polygon in the facility coordinate frame:
+
+```text
+Zone ID:          RZ-004
+Zone type:        Restricted
+Description:      Assembly station A3 pedestrian crossing
+Boundary method:  Map exclusion + safety scanner warning zone
+Speed limit:      0.8 m/s
+Access condition: Unconditional (always restricted)
+Polygon vertices: (12.4, 5.0), (12.4, 8.5), (16.0, 8.5), (16.0, 5.0)
+Coordinate frame: Facility North reference, origin at loading dock door D1
+Verification test: T-RZ-004 (speed logger + LiDAR trace playback)
+```
+
+<Tip>
+  Use the facility coordinate frame origin consistently across the zone register, the fleet manager map, and the AMR navigation system. Mismatched coordinate origins between the operating envelope document and the fleet manager map are a common integration error and a safety-critical inconsistency.
+</Tip>

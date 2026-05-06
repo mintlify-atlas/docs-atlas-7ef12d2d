@@ -1,0 +1,126 @@
+---
+title: "ISO 9283 robot performance test builder and reviewer"
+description: "Generate an ISO 9283:1998 performance test specification covering pose accuracy, repeatability, path velocity, and measurement system requirements."
+---
+
+The ISO 9283 performance test skill pair produces a structured, audit-ready xlsx workbook that specifies every performance metric required by ISO 9283:1998 — Manipulating industrial robots — Performance criteria and related test methods. The builder translates a robot's nominal specifications into a full test plan covering pose accuracy (AP), pose repeatability (RP), multi-directional pose accuracy variation (vAP), path accuracy (AT), path repeatability (RT), path velocity accuracy (AV), and distance accuracy (AD). It specifies test conditions, mandates a minimum of 30 measurement repetitions per ISO 9283 §6.1, and defines the measurement system requirements (laser tracker, ballbar, or equivalent) needed to achieve the required uncertainty budget. This skill is the entry point of the V&V lane and feeds directly into the acceptance protocol skill.
+
+<Note>
+**Chain position:** This is the entry point of the V&V lane. Its output feeds into:
+- [`robot-acceptance-protocol`](/skills/robot-acceptance-protocol) — FAT/SAT protocol that references these performance targets as acceptance criteria
+</Note>
+
+## Trigger phrase
+
+```text
+Build an ISO 9283 performance test plan for [robot]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder produces a multi-tab xlsx workbook styled in NAVY/Calibri. Each tab captures a distinct section of the ISO 9283:1998 performance test specification.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="Test configuration" icon="sliders">
+        Robot identification, rated payload, rated speed, test cube definition (ISO 9283 §5.3), ambient conditions, and warm-up cycle specification.
+      </Card>
+      <Card title="Pose metrics (AP / RP / vAP)" icon="crosshairs">
+        Pose accuracy and repeatability test matrix: target poses, number of repetitions (≥30), approach direction, and speed fractions (10%, 50%, 100% of rated).
+      </Card>
+      <Card title="Path metrics (AT / RT / AV)" icon="route">
+        Path accuracy, path repeatability, and path velocity accuracy test procedures along linear and circular paths at rated payload and multiple speed settings.
+      </Card>
+      <Card title="Distance accuracy (AD)" icon="ruler">
+        Distance accuracy and repeatability test setup, reference distance definitions, and uncertainty budget allocation for the measurement instrument.
+      </Card>
+      <Card title="Measurement system" icon="microscope">
+        Instrument specification: resolution, volumetric accuracy, sampling rate, calibration currency, and maximum permissible error relative to the robot's claimed AP.
+      </Card>
+      <Card title="Results template" icon="table">
+        Pre-formatted data capture table for each metric with statistical summary columns (mean, standard deviation, range) and pass/fail flag against specified limits.
+      </Card>
+    </CardGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Parse robot specification">
+        Extract robot model, payload, reach, rated speed, and manufacturer-claimed AP/RP values from the trigger phrase and any upstream scope document.
+      </Step>
+      <Step title="Define test cube and poses">
+        Compute the ISO 9283 test cube (20% of rated workspace diagonal) and select the five standard target poses (P1–P5) per ISO 9283 §5.3.
+      </Step>
+      <Step title="Specify repetition counts">
+        Set the minimum repetition count at 30 per pose per ISO 9283 §6.1, with recommended increase to 50 for safety-critical applications.
+      </Step>
+      <Step title="Define measurement system requirements">
+        Select the appropriate instrument class (laser tracker, ballbar, or coordinate measuring machine) based on the robot's claimed AP and state the maximum permissible instrument error (≤ AP/5 recommended).
+      </Step>
+      <Step title="Generate results template">
+        Output a pre-formatted data capture sheet with statistical formulas for mean, 2σ repeatability envelopes, and automatic pass/fail comparison against stated acceptance criteria.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill consumes the builder's xlsx output without modifying it. It runs a confirmation-measures checklist against ISO 9283:1998 requirements and produces a visual dashboard.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="KPI tiles" icon="gauge-high">
+        Metrics covered count, repetition count compliance (≥30 flag), measurement system adequacy rating, and open gaps count.
+      </Card>
+      <Card title="Metric coverage chart" icon="chart-bar">
+        Bar chart showing which of the seven ISO 9283 metrics (AP, RP, vAP, AT, RT, AV, AD) are fully specified, partially specified, or absent.
+      </Card>
+      <Card title="Statistical adequacy panel" icon="sigma">
+        Per-metric assessment of whether the stated repetition count meets the ISO 9283 §6.1 minimum and whether the results template includes the required statistical summaries.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings listing metric ID, finding type (missing / inadequate / inconsistent), and recommended corrective action.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="Test condition completeness">
+        Verifies that payload, speed fraction, warm-up, and ambient condition fields are populated for every metric and that the test cube definition matches ISO 9283 §5.3 proportions.
+      </Accordion>
+      <Accordion title="Repetition count compliance">
+        Confirms that every pose metric specifies at least 30 repetitions per ISO 9283 §6.1 and flags any metric falling below this threshold as a critical finding.
+      </Accordion>
+      <Accordion title="Measurement system adequacy">
+        Checks that the specified instrument's volumetric accuracy is at most one-fifth of the robot's claimed AP, that calibration currency is stated, and that sampling rate is sufficient for dynamic path metrics.
+      </Accordion>
+      <Accordion title="Statistical summary requirements">
+        Validates that the results template includes mean, standard deviation, and repeatability envelope columns for each metric, consistent with ISO 9283 §6.1 data reduction requirements.
+      </Accordion>
+    </AccordionGroup>
+
+    <Warning>
+      Any metric with a repetition count below 30 will appear as a critical finding and will block the downstream acceptance protocol reviewer from issuing a pass verdict.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Standards and clause coverage
+
+| ISO 9283:1998 clause | Topic |
+|---|---|
+| §5.3 | Test cube and target pose selection |
+| §6.1 | General test conditions and repetition requirements |
+| §6.2 | Pose accuracy (AP) and pose repeatability (RP) |
+| §6.3 | Multi-directional pose accuracy variation (vAP) |
+| §6.5 | Path accuracy (AT) and path repeatability (RT) |
+| §6.6 | Path velocity accuracy (AV) |
+| §6.10 | Distance accuracy (AD) and distance repeatability (RD) |
+| Annex A | Measurement uncertainty guidance |
+
+<Tip>
+Define the measurement system before ordering test equipment. The instrument's volumetric accuracy specification must be confirmed against the robot's claimed AP before scheduling the test — retrofitting a higher-accuracy instrument after planning is a common schedule risk.
+</Tip>

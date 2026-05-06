@@ -1,0 +1,134 @@
+---
+title: "ISO 3691-4 AMR risk assessment builder and reviewer"
+description: "Build an AMR/driverless truck risk assessment covering navigation, obstacle detection, and path planning hazards per ISO 3691-4:2020 and ANSI/RIA R15.08."
+---
+
+The ISO 3691-4 AMR risk assessment builder produces a structured xlsx workbook that applies the risk assessment methodology of ISO 3691-4:2020 and ANSI/RIA R15.08 to autonomous mobile robot and AGV systems. The assessment systematically identifies hazards specific to driverless operation — navigation failure, path planning errors, obstacle detection gaps, and unexpected motion — estimates the risk level of each hazard, specifies risk reduction measures, and evaluates the adequacy of the detection system design. This workbook is the entry point for the AMR lane and the foundational input for all downstream AMR documentation.
+
+<Tabs>
+  <Tab title="Builder">
+    The builder skill ingests an AMR/AGV system description (vehicle type, navigation technology, facility layout overview, and intended operational design domain) and produces a complete ISO 3691-4 risk assessment workbook.
+
+    **Trigger phrase**
+
+    ```text
+    Run an ISO 3691-4 risk assessment for [AMR/AGV system]
+    ```
+
+    **Workbook tabs**
+
+    <Steps>
+      <Step title="System Description">
+        AMR vehicle class, navigation technology (LiDAR SLAM, reflector-based, vision, QR/natural feature), maximum speed, payload capacity, and facility operational design domain boundaries.
+      </Step>
+      <Step title="Hazard Identification">
+        Systematic hazard list structured by hazard category (navigation, detection, path planning, mechanical, communication, cyber) with hazard source, hazardous situation, and potential harm description.
+      </Step>
+      <Step title="Risk Estimation">
+        Risk matrix with severity of harm, probability of occurrence, and frequency of exposure for each hazard, producing a risk level (Negligible / Low / Medium / High) before risk reduction measures.
+      </Step>
+      <Step title="Risk Reduction Measures">
+        Specified risk reduction measures per hazard, with measure type (inherently safe design, safeguarding, information for use) and the residual risk level after measures are applied.
+      </Step>
+      <Step title="Detection System Adequacy">
+        Assessment of the detection system coverage (360° field of view, minimum obstacle detection height, detection range at maximum speed) against the hazard identification outcomes.
+      </Step>
+    </Steps>
+
+    **AMR-specific hazard categories**
+
+    <CardGroup cols={2}>
+      <Card title="Navigation failures" icon="location-crosshairs">
+        Map mismatch, localisation loss, loop closure error, and unexpected rerouting — hazards unique to SLAM-based AMR systems operating in dynamic environments.
+      </Card>
+      <Card title="Path planning errors" icon="route">
+        Infeasible path selection, static obstacle avoidance failure, moving obstacle prediction errors, and convoy/formation planning conflicts.
+      </Card>
+      <Card title="Obstacle detection gaps" icon="eye-slash">
+        Scanner blind zones, detection horizon at speed, small object detection below minimum height threshold, and reflective surface artefacts.
+      </Card>
+      <Card title="Communication failures" icon="wifi">
+        Fleet manager link loss, estop command delivery failure, traffic management zone update delay, and cyber intrusion affecting vehicle command.
+      </Card>
+      <Card title="Mechanical hazards" icon="wrench">
+        Load instability, charging dock approach collision, AMR-to-AMR collision in shared zones, and conveyor interface pinch points.
+      </Card>
+      <Card title="Operational design domain exceedance" icon="border-all">
+        AMR operating outside the design envelope — wet floor, lighting change, gradient beyond specification, or crowd density exceeding the detection system design basis.
+      </Card>
+    </CardGroup>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill ingests the risk assessment xlsx and produces a confirmation-measures checklist and visual dashboard covering hazard completeness, risk reduction adequacy, and detection system coverage.
+
+    **Dashboard components**
+
+    <CardGroup cols={2}>
+      <Card title="KPI tile: hazard completeness" icon="list-check">
+        Count of identified hazards vs. ISO 3691-4 normative hazard category checklist, surfacing any category with zero documented hazards.
+      </Card>
+      <Card title="Risk distribution chart" icon="chart-bar">
+        Stacked bar of hazard counts by risk level (before and after measures), showing the risk reduction effectiveness per category.
+      </Card>
+      <Card title="Residual risk heat map" icon="fire">
+        Matrix view of residual risk levels by hazard category and severity, highlighting any High residual risk items requiring further review.
+      </Card>
+      <Card title="Findings table" icon="triangle-exclamation">
+        Non-conformances with severity, affected hazard, and recommended corrective action for each gap identified in the review.
+      </Card>
+    </CardGroup>
+
+    **Reviewer checks**
+
+    <AccordionGroup>
+      <Accordion title="Hazard completeness for AMR-specific risks">
+        Verifies that all six AMR hazard categories (navigation, path planning, detection, communication, mechanical, ODD exceedance) contain at least one documented hazard, and that AMR-specific hazards not present in conventional forklift risk assessments have been explicitly considered.
+      </Accordion>
+      <Accordion title="Detection system coverage">
+        Checks that the detection system adequacy assessment covers 360° field of view, minimum detectable object height (ISO 3691-4 §5.9 requires ≤ 200 mm for the first protective field), and stopping distance at maximum speed across all floor surface conditions in scope.
+      </Accordion>
+      <Accordion title="Risk reduction adequacy">
+        Confirms that every High risk hazard (before measures) has at least one safeguarding measure specified, and that the measure effectiveness claim is supported by a reference (standard, SIL/PLr rating, or test record) rather than an assertion.
+      </Accordion>
+      <Accordion title="ANSI/RIA R15.08 alignment">
+        For US-market deployments, verifies that risk reduction measures align with R15.08 Part 1 (vehicles), Part 2 (system), and Part 3 (integration) requirements in addition to ISO 3691-4 measures.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+<Note>
+  **Chain position — entry point for the AMR lane.**
+  This skill has no upstream skill dependencies; it is the first node in the AMR lane. Its xlsx output is consumed by:
+  - [`operating-envelope`](/skills/operating-envelope) — hazard zone map and zone classification
+  - [`fleet-manager-architecture`](/skills/fleet-manager-architecture) — multi-AMR coordination architecture (indirectly via operating-envelope)
+</Note>
+
+## Standard reference
+
+**ISO 3691-4:2020** — *Industrial trucks — Safety requirements and verification — Part 4: Driverless industrial trucks and their systems*
+
+**ANSI/RIA R15.08-1/-2/-3** — *American National Standard for Industrial Mobile Robots*
+
+ISO 3691-4 is the primary international standard for AGV and AMR safety. R15.08 is the US companion standard developed by RIA that extends the AMR-specific requirements, particularly for vehicles navigating in shared human spaces without fixed guide paths.
+
+<Info>
+  ISO 3691-4 applies to driverless industrial trucks (AGVs) and their associated systems. ANSI/RIA R15.08 extends coverage to autonomous mobile robots (AMRs) that navigate without infrastructure modifications — the distinction is important because R15.08 introduces additional requirements for dynamic path planning systems not covered by the original ISO standard.
+</Info>
+
+## Risk estimation matrix
+
+The assessment uses a 3×3 risk matrix consistent with ISO 12100:2010 methodology:
+
+| Severity | Probability × Frequency | Risk Level |
+|---|---|---|
+| Catastrophic (fatality/permanent disability) | Any | High |
+| Serious (major injury) | Frequent or likely | High |
+| Serious (major injury) | Seldom or unlikely | Medium |
+| Minor (reversible injury) | Frequent | Medium |
+| Minor (reversible injury) | Seldom or unlikely | Low |
+| Negligible (no injury) | Any | Negligible |
+
+<Tip>
+  Document the rationale for the probability and frequency ratings — especially for navigation failure hazards where statistical occurrence data may not be available. Justified engineering estimates with references to similar deployed systems are acceptable; unsupported "unlikely" ratings are a common reviewer finding.
+</Tip>

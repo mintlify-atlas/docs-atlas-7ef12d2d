@@ -1,0 +1,126 @@
+---
+title: "AI/ML governance: datasets, model cards, and perception"
+description: "Cover 3 pairs: dataset-documentation, model-card, perception-test-catalog. Gebru et al. Datasheets for Datasets, Mitchell et al. model cards, ISO/IEC 5469."
+---
+
+As machine learning models move from research into production robotic systems — handling perception, grasping, navigation, and anomaly detection — the documentation requirements around those models have become a first-class engineering concern. Three builder + reviewer pairs automate the three core AI/ML governance artifacts: a Datasheets for Datasets record following the Gebru et al. framework, a model card following the Mitchell et al. framework with per-slice fairness metrics, and a perception test catalog that systematically covers edge cases, adversarial inputs, and false positive/negative scenarios. Together they provide the audit trail that safety reviewers, customer QA teams, and regulators increasingly expect when AI components are deployed in industrial environments.
+
+<CardGroup cols={2}>
+  <Card title="dataset-documentation-builder" icon="database" href="/skills/dataset-documentation">
+    Produces a Datasheets for Datasets record (Gebru et al.) covering motivation, composition, collection, preprocessing, uses, distribution, and maintenance sections.
+  </Card>
+  <Card title="dataset-documentation-reviewer" icon="circle-check" href="/skills/dataset-documentation">
+    Audits section completeness against the Gebru et al. framework, flags missing provenance records, and produces a compliance dashboard.
+  </Card>
+  <Card title="model-card-builder" icon="id-card" href="/skills/model-card">
+    Generates a Mitchell et al. model card with per-slice performance metrics, intended use statements, and out-of-scope use restrictions.
+  </Card>
+  <Card title="model-card-reviewer" icon="circle-check" href="/skills/model-card">
+    Validates per-slice fairness metric coverage, checks intended use boundary completeness, and confirms evaluation methodology documentation.
+  </Card>
+  <Card title="perception-test-catalog-builder" icon="eye" href="/skills/perception-test-catalog">
+    Creates a structured catalog of edge cases, adversarial inputs, and false positive/negative scenarios for perception system validation.
+  </Card>
+  <Card title="perception-test-catalog-reviewer" icon="circle-check" href="/skills/perception-test-catalog">
+    Audits scenario coverage against the deployment environment, flags untested failure modes, and produces a coverage heatmap dashboard.
+  </Card>
+</CardGroup>
+
+## Skill pair details
+
+### dataset-documentation-builder + reviewer
+
+The dataset builder implements the seven-section Datasheets for Datasets framework (Gebru et al., 2021). The output xlsx workbook contains one tab per section, structured so that each question from the original paper maps to a documented answer or an explicit "N/A" with justification.
+
+<AccordionGroup>
+  <Accordion title="Motivation">
+    Records why the dataset was created, who funded its creation, and for what purpose. In a robotics context this section identifies the robot type, task domain (pick-and-place, bin picking, navigation, weld inspection), and the specific model training objective the dataset supports.
+  </Accordion>
+  <Accordion title="Composition">
+    Documents what the instances are (images, point clouds, force/torque sequences, video clips), how many instances are present, the labeling scheme and label set, known errors or noise sources in the data, and whether the dataset contains sensitive information that could affect model behavior in safety-critical deployments.
+  </Accordion>
+  <Accordion title="Collection process">
+    Covers how data was acquired: robot type and configuration, sensor specifications (camera model, resolution, frame rate, LiDAR model, range), lighting conditions, background variation, object pose distribution, and whether human subjects or personally identifiable information appear in the data.
+  </Accordion>
+  <Accordion title="Preprocessing and cleaning">
+    Records all preprocessing steps applied: resizing, normalization, augmentation policy (flips, rotations, brightness jitter), outlier removal criteria, and the software version used. This section must be version-controlled so that dataset processing is reproducible.
+  </Accordion>
+  <Accordion title="Uses">
+    States the intended use (training, fine-tuning, evaluation, benchmarking), out-of-scope uses (e.g., the dataset was collected indoors; outdoor deployment is out of scope), and any tasks the dataset should not be used for due to known distribution limitations.
+  </Accordion>
+  <Accordion title="Distribution and maintenance">
+    Records the license, access mechanism, point of contact, update cadence, and the dataset version and hash at time of model training. Links to the model card are recorded here so that dataset and model documentation remain bidirectionally traceable.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### model-card-builder + reviewer
+
+The model card builder implements the Mitchell et al. (2019) framework with extensions for per-slice fairness metrics, which are especially important in robotic perception tasks where performance can vary significantly across object categories, lighting conditions, or scene configurations.
+
+<Steps>
+  <Step title="Model details">
+    Records model name, version, architecture (e.g., YOLOv8n, PointPillars, ResNet-50), training framework and version, training compute (GPU hours, hardware type), release date, and the contact for questions about the model.
+  </Step>
+  <Step title="Intended use">
+    States the primary intended use cases (object detection for bin picking at conveyor speeds < 0.5 m/s), the primary intended users (integrators deploying the robot model in scope), and explicit out-of-scope uses (outdoor environments, non-industrial object categories, safety-critical decision-making without a human-in-the-loop).
+  </Step>
+  <Step title="Training and evaluation data">
+    Links to the dataset documentation (Datasheets for Datasets record) and summarizes the train/validation/test split, class distribution, and any data augmentation applied at training time. The builder records the dataset version hash so model and data versions are tied together.
+  </Step>
+  <Step title="Per-slice performance metrics">
+    The most critical section for fairness and safety review. The builder generates a per-slice metrics table indexed by: object category, object size bin (small / medium / large by pixel area), lighting condition (bright / dim / backlit), occlusion level (0–25% / 25–50% / >50%), and sensor distance bin. Metrics recorded per slice: precision, recall, F1, mAP@0.5, mAP@0.5:0.95, false positive rate, false negative rate.
+  </Step>
+  <Step title="Ethical considerations and caveats">
+    Documents known limitations, failure mode risk, environmental distribution shift risks, and recommended monitoring approach in production. For safety-rated applications, this section cross-references the ISO/IEC 5469 applicability assessment.
+  </Step>
+</Steps>
+
+<Note>
+  **ISO/IEC 5469 applicability:** ISO/IEC 5469 (Artificial intelligence — Functional safety and AI systems) addresses the use of AI/ML in safety-related systems. If the perception model output feeds a safety function — for example, a presence detection classifier that gates robot motion — the model card must include an ISO/IEC 5469 applicability assessment documenting the safety integrity requirements, the measures taken to meet them (diversity, monitoring, fallback), and any residual risk. The model-card-builder includes this section as a conditional tab activated when the "safety function" flag is set in the input JSON.
+</Note>
+
+---
+
+### perception-test-catalog-builder + reviewer
+
+The perception test catalog builder produces a structured scenario catalog for validating perception system behavior at the boundaries of the operational design domain. Unlike unit tests on model accuracy metrics, the catalog targets the failure modes that matter most in deployment: edge cases that the training distribution underrepresents, adversarial inputs that cause systematic misclassification, and false positive/negative scenarios with known safety consequences.
+
+<AccordionGroup>
+  <Accordion title="Edge case scenarios">
+    Edge cases are organized by factor: partial occlusion (object partially behind fixture), extreme lighting (specular reflection from polished metal parts, backlit silhouette), atypical orientation (object upside-down or rotated beyond training distribution), novel object (object not in training set appearing in scene), and sensor degradation (dirty lens, condensation, motion blur at high conveyor speed). Each scenario record includes: scenario ID, description, representative image or point cloud example, expected model output, acceptance criterion, and test result.
+  </Accordion>
+  <Accordion title="Adversarial input tests">
+    Covers deliberate perturbations and real-world analogs: printed adversarial patches placed on objects, sticker labels that shift classification, reflective surfaces that confuse depth sensors, transparent objects (glass bottles, acrylic fixtures), and structured light interference from adjacent robot vision systems. Each adversarial test records the perturbation method, perturbation magnitude, and whether the model response is fail-safe (false negative leading to missed detection) or fail-dangerous (false positive leading to incorrect action).
+  </Accordion>
+  <Accordion title="False positive and false negative scenarios">
+    FP/FN analysis is safety-critical because the consequence of each error type differs. For a presence-detection system: a false positive (detecting presence when the zone is empty) causes unnecessary robot stops — a productivity loss. A false negative (missing presence when a person is in the zone) is a safety hazard. The catalog records each FP and FN scenario with its initiating condition, consequence classification (safety / quality / productivity), and the risk control in place (independent safety sensor, velocity reduction, zone monitoring).
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  Cross-reference the perception test catalog with the HIL test catalog from the V&V cluster. Scenarios in the perception catalog that affect safety functions should have corresponding HIL-level tests that verify the robot controller responds correctly when the perception system outputs the adversarial or edge-case classification.
+</Tip>
+
+## AI/ML governance chain
+
+```text
+Dataset Documentation → Model Card → Perception Test Catalog
+```
+
+The model card links to the dataset documentation by version hash, ensuring that any dataset update triggers a model card revision review. The perception test catalog is generated after the model card is finalized and references the per-slice performance metrics to identify which slices need additional test scenario coverage.
+
+## Standards and frameworks reference
+
+<AccordionGroup>
+  <Accordion title="Gebru et al. — Datasheets for Datasets (2021)">
+    Timnit Gebru, Jamie Morgenstern, Briana Vecchione, Jennifer Wortman Vaughan, Hanna Wallach, Hal Daumé III, and Kate Crawford. "Datasheets for Datasets." *Communications of the ACM*, 64(12), 86–92. The dataset-documentation-builder maps its seven sections directly to the questions in this paper.
+  </Accordion>
+  <Accordion title="Mitchell et al. — Model Cards for Model Reporting (2019)">
+    Margaret Mitchell, Simone Wu, Andrew Zaldivar, Parker Barnes, Lucy Vasserman, Ben Hutchinson, Elena Spitzer, Inioluwa Deborah Raji, and Timnit Gebru. "Model Cards for Model Reporting." *FAccT 2019*. The model-card-builder extends this framework with per-slice metrics structured for industrial robotics deployment contexts.
+  </Accordion>
+  <Accordion title="ISO/IEC 5469 — AI in safety systems">
+    ISO/IEC 5469 (currently under development as a Technical Specification) addresses properties and methods relevant to functional safety for AI systems used in safety-related functions. It complements IEC 61508 and ISO 13849-1 by providing guidance on how to treat AI/ML components that contribute to safety functions, including requirements for training data quality, testing, monitoring, and uncertainty handling.
+  </Accordion>
+</AccordionGroup>

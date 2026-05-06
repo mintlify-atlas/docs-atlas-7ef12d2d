@@ -1,0 +1,78 @@
+---
+title: "BehaviorTree.CPP specification builder and reviewer"
+description: "Generate a BehaviorTree.CPP node catalog, blackboard key definitions, and XML subtree composition spec for robot task execution and recovery logic."
+---
+
+The `behavior-tree-spec-builder` produces a BehaviorTree.CPP v4 specification covering the node catalog (Action, Condition, Control, Decorator nodes), blackboard key definitions, and XML subtree composition. It provides the structured reference that Nav2 and robot task executors use to configure mission logic, and it directly informs the Nav2 config skill downstream.
+
+<Note>
+**Chain position:** Consumes `ros2-system-architecture-builder` output. Feeds into `nav2-config-builder`.
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Specify behavior trees for [robot/application description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | Node Catalog | Node name, type (Action/Condition/Control/Decorator), ports (input/output), description |
+    | Blackboard Keys | Key name, type (string/bool/int/double/geometry_msgs::Pose), read nodes, write nodes |
+    | Subtrees | Subtree name, root node, purpose, called from |
+    | Tree XML | Full BehaviorTree.CPP XML definition for each top-level tree |
+
+    **Node types:**
+
+    | Type | Purpose | Examples |
+    |------|---------|---------|
+    | Action | Execute ROS2 actions/services | NavigateToPose, DockRobot, GraspObject |
+    | Condition | Check state without side effects | IsBatteryLow, IsGoalReached, IsObstacleDetected |
+    | Control | Sequence, Fallback, Parallel | Sequence, ReactiveFallback, ParallelAll |
+    | Decorator | Modify child execution | RetryUntilSuccessful, Inverter, ForceSuccess |
+
+    **Example BT XML snippet:**
+    ```xml
+    <BehaviorTree ID="NavigateWithRecovery">
+      <ReactiveFallback>
+        <Sequence>
+          <IsGoalReached goal="{goal_pose}"/>
+        </Sequence>
+        <Sequence>
+          <NavigateToPose goal="{goal_pose}" error_code_id="{nav_error}"/>
+        </Sequence>
+        <Sequence>
+          <ClearCostmapAroundRobot/>
+          <NavigateToPose goal="{goal_pose}" error_code_id="{nav_error}"/>
+        </Sequence>
+      </ReactiveFallback>
+    </BehaviorTree>
+    ```
+  </Tab>
+  <Tab title="Reviewer">
+    The `behavior-tree-spec-checklist-reviewer` validates the BT specification for correctness and recovery coverage.
+
+    **Dashboard components:**
+    - KPI tiles: node count, blackboard key count, subtree count, recovery path count
+    - Compliance bar: specification completeness score
+    - Findings table: missing recovery nodes, untyped blackboard keys, orphan subtrees
+
+    **Checks performed:**
+    - Every Action node has at least one Fallback or retry decorator for recovery
+    - All blackboard keys have defined types and documented read/write owners
+    - No infinite loops (Sequence with no terminal Condition)
+    - Subtree references resolve to defined subtrees
+    - Critical failure modes have recovery branches in the tree
+  </Tab>
+</Tabs>
+
+## Compatibility
+
+| Item | Detail |
+|------|--------|
+| BT library | BehaviorTree.CPP v4 |
+| Nav2 integration | Nav2 uses BT as its task executor (bt_navigator) |
+| Visualization | Groot2 for tree editing and monitoring |

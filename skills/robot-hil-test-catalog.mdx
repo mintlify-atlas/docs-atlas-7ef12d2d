@@ -1,0 +1,126 @@
+---
+title: "Robot safety HIL test catalog builder and reviewer"
+description: "Generate a hardware-in-the-loop test catalog covering sensor fault injection, communication loss, power faults, E-stop, and safety function validation cases."
+---
+
+The robot HIL test catalog skill pair produces a structured, audit-ready xlsx workbook that catalogs every hardware-in-the-loop (HIL) test required to validate the robot safety system. HIL testing connects real hardware — the robot controller, safety PLC, I/O modules, and sensors — to a simulation of the process or plant environment, enabling fault injection scenarios that cannot safely be tested on a live production system. The builder targets ISO 13849-1 and IEC 62061 safety function validation requirements, cataloging sensor fault injection tests (encoder failure, proximity sensor failure), communication loss tests (fieldbus dropout, EtherCAT loss), power fault tests (24 V loss, AC line drop), Category 0/1/2 E-stop function tests, and complete safety function validation matrices. Each test entry specifies the injection method, required pass/fail criterion, and the safety function being validated.
+
+<Note>
+**Chain position:** This skill consumes output from:
+- [`robot-acceptance-protocol`](/skills/robot-acceptance-protocol) — FAT/SAT test cases that the HIL catalog extends with fault injection coverage
+
+Its output feeds into:
+- [`robot-field-acceptance`](/skills/robot-field-acceptance) — field acceptance plan that references HIL results as pre-conditions for OEE measurement
+</Note>
+
+## Trigger phrase
+
+```text
+Build a HIL test catalog for [robot safety system]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder produces a multi-tab xlsx workbook styled in NAVY/Calibri with safety function category color coding (Cat B/1/2/3/4 and PLa–PLe). Each tab covers a distinct fault class.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="Sensor fault injection" icon="microchip">
+        Tests for encoder failure (single and dual-channel), proximity sensor failure (open and short circuit), force/torque sensor dropout, and speed monitor channel disagreement.
+      </Card>
+      <Card title="Communication loss" icon="network-wired">
+        Tests for fieldbus dropout (PROFINET, EtherCAT, DeviceNet), watchdog timeout behavior, safe state achievement on loss of cyclic communication, and recovery after re-establishment.
+      </Card>
+      <Card title="Power fault" icon="bolt">
+        Tests for 24 V DC supply loss (primary and redundant), AC line drop, UPS switchover, and controller behavior during under-voltage conditions, including safe state timing measurements.
+      </Card>
+      <Card title="E-stop function tests" icon="hand">
+        Category 0 (immediate de-energisation), Category 1 (controlled stop before de-energisation), and Category 2 (controlled stop with drive power maintained) stop function tests per IEC 60204-1.
+      </Card>
+      <Card title="Safety function validation" icon="shield-halved">
+        Per-safety-function validation matrix: function ID, required PL/SIL, test method, measured response time, diagnostic coverage evidence, and final pass/fail verdict.
+      </Card>
+      <Card title="Test repeatability log" icon="arrow-rotate-right">
+        Log for recording multiple test runs of each scenario to demonstrate repeatability, with statistical summary (min/max/mean response time) and pass/fail consistency flag.
+      </Card>
+    </CardGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Ingest acceptance protocol test cases">
+        Read the upstream FAT/SAT protocol to identify which safety functions have already been functionally tested and which require deeper fault injection coverage.
+      </Step>
+      <Step title="Enumerate fault injection scenarios">
+        Generate the full fault injection scenario list, organised by fault class (sensor, communication, power, E-stop) with each scenario linked to the specific safety function it validates.
+      </Step>
+      <Step title="Define injection methods">
+        For each scenario, specify the physical or software-based injection method: wire disconnection, forced I/O signal, software fault trigger, or simulation model parameter change.
+      </Step>
+      <Step title="Assign pass/fail criteria">
+        State the required safe state response time, the expected output behavior, and the PL/SIL requirement from ISO 13849-1 or IEC 62061 that provides the criterion basis.
+      </Step>
+      <Step title="Generate repeatability log template">
+        Output a pre-formatted repeatability log with run-number rows, timestamp columns, measured response time columns, and automatic min/max/mean formulas.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill consumes the builder's xlsx output without modifying it. It assesses fault injection scenario completeness, test procedure repeatability, and pass/fail criterion clarity, then produces a visual dashboard.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="KPI tiles" icon="gauge-high">
+        Total test scenarios, safety functions with full HIL coverage, scenarios missing pass/fail criteria, and repeatability log completion rate.
+      </Card>
+      <Card title="Fault class coverage chart" icon="chart-bar">
+        Stacked bar showing test scenario distribution across sensor fault, communication loss, power fault, E-stop, and safety function validation categories.
+      </Card>
+      <Card title="Safety function coverage matrix" icon="table-cells">
+        Heat map of safety functions versus fault classes, highlighting any cell where no HIL test exists — indicating a potential validation gap.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings listing scenario ID, finding type (missing scenario / ambiguous criterion / no injection method / repeatability not logged), and recommended action.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="Fault injection scenario completeness">
+        Verifies that all four fault classes (sensor, communication, power, E-stop) are represented and that each safety function identified in the upstream acceptance protocol has at least one dedicated HIL scenario.
+      </Accordion>
+      <Accordion title="Test procedure repeatability">
+        Confirms that each scenario specifies a repeatable injection method, that the repeatability log records at least three test runs per scenario, and that pass/fail results are consistent across runs.
+      </Accordion>
+      <Accordion title="Pass/fail criterion clarity">
+        Checks that every scenario states a specific, measurable criterion — typically a maximum response time in milliseconds linked to the PLr/SIL requirement — and flags any criterion using subjective language.
+      </Accordion>
+      <Accordion title="E-stop category coverage">
+        Validates that Category 0, Category 1, and Category 2 stop functions are each tested, that measured response times are recorded, and that the stop category matches the safety function design.
+      </Accordion>
+    </AccordionGroup>
+
+    <Warning>
+      Any safety function with no HIL test scenario will appear as a critical finding. The field acceptance reviewer requires confirmed HIL results before allowing OEE measurement to begin.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Standards and clause coverage
+
+| Standard | Clause | Topic |
+|---|---|---|
+| ISO 13849-1:2023 | §6 | Safety function specification and validation |
+| ISO 13849-1:2023 | §10 | Validation by analysis and testing |
+| IEC 62061:2021 | §8 | Safety function realisation and validation |
+| IEC 60204-1:2016 | §9.2 | Stop functions (Category 0/1/2) |
+| ISO 10218-2 | §5.4 | Safety function verification requirements |
+
+<Tip>
+Schedule HIL testing before the FAT, not after. Running the HIL catalog before the FAT allows fault injection findings to be resolved in the integrator's facility rather than at the customer site, where remediation is significantly more expensive.
+</Tip>

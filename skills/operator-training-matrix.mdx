@@ -1,0 +1,64 @@
+---
+title: "Robot operator training matrix builder and reviewer"
+description: "Generate per-role qualification matrices with competency areas, training requirements, assessment methods, and re-qualification intervals for robot cell staff."
+---
+
+The `operator-training-matrix-builder` produces a per-role qualification matrix covering all personnel who interact with a robot cell — operators, technicians, programmers, maintenance staff, and supervisors. For each role it defines required competency areas, training delivery method, assessment approach, and re-qualification interval. It is the terminal skill in the operational lane, consuming the robot SOP and LOTO procedure as upstream inputs.
+
+<Note>
+**Chain position:** Consumes `robot-sop-builder` and `loto-procedure-builder` outputs. Terminal node in the operational lane.
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Build an operator training matrix for [robot cell/facility description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | Role Definitions | Role name, scope, authority level, supervision requirements |
+    | Competency Matrix | Role × competency area grid with required proficiency level (Awareness / Competent / Expert) |
+    | Training Plan | Training topic, delivery method (classroom/OJT/CBT), duration, prerequisite |
+    | Assessment Methods | Written test, practical demonstration, observed performance, sign-off |
+    | Qualification Records | Template for tracking individual completion dates and assessor signatures |
+    | Re-qualification Schedule | Interval per role (e.g., annual for operators, biennial for programmers) |
+
+    **Roles covered:**
+
+    | Role | Typical competency focus |
+    |------|--------------------------|
+    | Operator | Safe startup/shutdown, fault response, E-stop use, no-go zone awareness |
+    | Maintenance technician | LOTO, mechanical/electrical fault diagnosis, safeguard bypass procedures |
+    | Robot programmer | Teaching pendant use, speed limits, collaborative mode configuration |
+    | Supervisor | Emergency procedures, incident reporting, override authority |
+    | Safety officer | Risk assessment review, compliance audit, corrective action |
+  </Tab>
+  <Tab title="Reviewer">
+    The `operator-training-matrix-checklist-reviewer` checks the training matrix for completeness against the cell's SOP and LOTO procedure.
+
+    **Dashboard components:**
+    - KPI tiles: role count, competency area count, re-qualification interval compliance
+    - Compliance bar: ISO 10218-2 training clause coverage
+    - Findings table: missing competency areas or roles with recommended actions
+
+    **Checks performed:**
+    - All roles identified that appear in the SOP and LOTO procedure
+    - LOTO competency included for maintenance and authorized employee roles
+    - E-stop and emergency response competency present for all roles
+    - Assessment method defined for every competency area
+    - Re-qualification intervals specified and justified
+    - Qualification record template included
+  </Tab>
+</Tabs>
+
+## Standards coverage
+
+| Standard | Relevance |
+|----------|-----------|
+| ISO 10218-2:2025 | Clause 5.4 — information for use, training requirements for robot installations |
+| OSHA 1910.147 | Authorized employee training for LOTO |
+| OSHA 1910.212 | Machine guarding awareness training |

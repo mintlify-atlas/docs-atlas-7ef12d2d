@@ -1,0 +1,66 @@
+---
+title: "URDF/xacro model specification builder and reviewer"
+description: "Generate a URDF/xacro kinematic and inertial specification covering links, joints, transmissions, and Gazebo plugins per REP 103 coordinate conventions."
+---
+
+The `urdf-model-spec-builder` produces a URDF/xacro model specification that defines the robot's kinematic chain, link geometry, inertial tensors, joint limits, dynamics, and transmission mappings. It follows REP 103 coordinate conventions (x-forward, y-left, z-up) and outputs a structured xlsx spec that serves as the authoritative reference for both simulation and the TF tree specification downstream.
+
+<Note>
+**Chain position:** Consumes `ros2-system-architecture-builder` output. Feeds into `tf-tree-spec-builder`.
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Build a URDF spec for [robot model/arm/mobile base description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | Links | Link name, visual mesh, collision mesh, inertial mass, inertia tensor (Ixx, Iyy, Izz, Ixy, Ixz, Iyz) |
+    | Joints | Joint name, type (revolute/prismatic/fixed/continuous), parent link, child link, axis, limits (position/velocity/effort) |
+    | Dynamics | Joint damping, friction values |
+    | Transmissions | Transmission name, type, joint name, actuator name, mechanical reduction |
+    | Gazebo Plugins | Plugin name, filename, parameters (e.g., ros2_control, differential drive) |
+    | Coordinate Frames | Frame name, parent, origin xyz, origin rpy — per REP 103 |
+
+    **Example joint definition:**
+    ```xml
+    <joint name="shoulder_pan_joint" type="revolute">
+      <parent link="base_link"/>
+      <child link="shoulder_link"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="-3.14159" upper="3.14159"
+             velocity="3.15" effort="330.0"/>
+      <dynamics damping="0.0" friction="0.0"/>
+    </joint>
+    ```
+  </Tab>
+  <Tab title="Reviewer">
+    The `urdf-model-spec-checklist-reviewer` checks the URDF specification for physical plausibility and convention compliance.
+
+    **Dashboard components:**
+    - KPI tiles: link count, joint count, transmission count, REP 103 compliance score
+    - Compliance bar: specification completeness
+    - Findings table: implausible inertials, missing limits, axis convention violations
+
+    **Checks performed:**
+    - Inertia tensor values are physically plausible (positive definite, consistent with mass/geometry)
+    - All revolute and prismatic joints have position, velocity, and effort limits
+    - Joint axis vectors are unit vectors
+    - Coordinate axes follow REP 103 (x-forward, y-left, z-up for base_link)
+    - Every joint has a corresponding transmission if actuated
+    - Collision meshes defined for all non-fixed links
+  </Tab>
+</Tabs>
+
+## Standards coverage
+
+| Standard | Relevance |
+|----------|-----------|
+| REP 103 | Standard units and coordinate conventions (x-forward, y-left, z-up) |
+| REP 105 | Coordinate frames for mobile platforms (base_link, base_footprint) |
+| URDF specification | ROS URDF XML format — links, joints, transmissions |

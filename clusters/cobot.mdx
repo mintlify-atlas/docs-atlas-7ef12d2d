@@ -1,0 +1,164 @@
+---
+title: "Cobot skills: ISO 15066 biomechanics and safeguarding"
+description: "4 cobot skill pairs covering ISO/TS 15066 biomechanical limits, Speed & Separation Monitoring, Power & Force Limiting, and hand-guiding device specification."
+---
+
+Collaborative robot deployments require a fundamentally different documentation approach from conventional caged industrial cells. Where a traditional cell relies on physical separation to eliminate contact, a cobot cell is designed around controlled contact — which means every interaction between the robot and a human body region must be modeled, measured, and validated against published biomechanical limits. The cobot cluster provides four builder and reviewer pairs that cover this complete scope: ISO/TS 15066 biomechanical limit verification, Speed and Separation Monitoring (SSM) plan with the Sp separation distance formula, Power and Force Limiting (PFL) plan with biofidelic contact measurements, and hand-guiding device specification. These four skills share the ISO/TS 15066 biomechanical limits workbook as a common upstream input, ensuring that force and pressure thresholds are consistent across every collaborative mode.
+
+## Collaborative robot operating modes
+
+ISO/TS 15066:2016 defines four collaborative operation types. The cobot cluster covers three of them with dedicated skills:
+
+<CardGroup cols={2}>
+  <Card title="Speed and Separation Monitoring (SSM)" icon="radar" href="/skills/ssm-plan">
+    Robot speed is dynamically reduced as the human approaches, maintaining a calculated protective separation distance Sp at all times. The `ssm-plan-builder` skill formalises the Sp formula implementation and zone geometry.
+  </Card>
+  <Card title="Power and Force Limiting (PFL)" icon="hand" href="/skills/pfl-plan">
+    Robot speed and force are limited so that contact — if it occurs — does not exceed the biomechanical thresholds in ISO/TS 15066 Table A.2. The `pfl-plan-builder` skill documents measured transient and clamping contact forces against per-region limits.
+  </Card>
+  <Card title="Hand Guiding" icon="hand-holding" href="/skills/cobot-hand-guiding">
+    An operator physically guides the robot through a task using a hand-guiding device with a 3-position enabling switch. The `cobot-hand-guiding-builder` skill specifies the device, switch design, and guiding speed limits.
+  </Card>
+  <Card title="Safety-Rated Monitored Stop (SRMS)" icon="stop" href="/clusters/foundation">
+    The robot comes to a stop before a human enters the collaborative workspace. SRMS requirements are addressed in the foundation cluster's robot cell scope and compliance matrix skills rather than a dedicated cobot skill.
+  </Card>
+</CardGroup>
+
+## Skill pairs
+
+<CardGroup cols={2}>
+  <Card title="ISO/TS 15066 biomechanical limits" icon="person" href="/skills/iso15066-biomechanical-limits">
+    **Standard:** ISO/TS 15066:2016, Table A.2
+
+    Builder produces a body-region force and pressure limit table with one row per ISO/TS 15066 body region. Each row records the published limit (N for force, N/cm² for pressure), the measured value from contact testing, margin, and pass/fail status. Reviewer validates measurement methodology and coverage against all 29 body regions in Table A.2.
+  </Card>
+  <Card title="SSM plan" icon="arrows-left-right-to-line" href="/skills/ssm-plan">
+    **Standard:** ISO/TS 15066:2016, clause 5.4
+
+    Builder produces the Speed and Separation Monitoring plan including the full Sp formula implementation, zone geometry, sensor selection, and residual risk statement. Reviewer validates the Sp calculation, sensor response time assumptions, and zone boundary documentation.
+  </Card>
+  <Card title="PFL plan" icon="weight-scale" href="/skills/pfl-plan">
+    **Standard:** ISO/TS 15066:2016, clause 5.5
+
+    Builder produces the Power and Force Limiting plan with biofidelic measurement results, distinguishing clamping contact from transient contact for each body region. Reviewer checks measured values against ISO/TS 15066 Table A.2 limits and flags exceedances requiring robot parameter adjustment.
+  </Card>
+  <Card title="Cobot hand guiding" icon="hand-point-up" href="/skills/cobot-hand-guiding">
+    **Standard:** ISO/TS 15066:2016, clause 5.3; ISO 10218-1:2025
+
+    Builder specifies the hand-guiding device including grip force sensor, 3-position enabling switch design, guiding speed limit (typically ≤ 250 mm/s), and emergency release. Reviewer validates device specification against ISO 10218-1 enabling device requirements.
+  </Card>
+</CardGroup>
+
+## SSM: the Sp formula
+
+The `ssm-plan-builder` implements the protective separation distance formula from ISO/TS 15066 clause 5.4.3. Sp is the minimum separation distance that must be maintained between the robot's nearest moving part and any part of the human body at all times:
+
+```text
+Sp = (vc + vh + vs) × (tr + ts) + C + Zd + Zr
+
+Where:
+  vc  = robot speed contribution (m/s)
+  vh  = human approach speed (m/s), default 1.6 m/s per ISO/TS 15066 Table 1
+  vs  = additional speed margin (m/s)
+  tr  = reaction time of the protective device (s)
+  ts  = robot stopping time (s)
+  C   = intrusion distance of sensing device (m), per IEC 62046
+  Zd  = position uncertainty of detection device (m)
+  Zr  = position uncertainty of robot (m)
+```
+
+<AccordionGroup>
+  <Accordion title="SSM builder worksheet tabs" icon="file-excel">
+    The SSM plan workbook contains five tabs:
+
+    - **Parameters** — all Sp formula inputs: vc, vh, vs, tr, ts, C, Zd, Zr with sources and measurement basis
+    - **Zone Geometry** — collaborative workspace boundary coordinates, safety-rated area scanner zone definitions, robot mounting position
+    - **Sensor Selection** — area scanner model, response time (tr), intrusion distance (C), safety category, and PL rating
+    - **Sp Calculation** — formula worksheet with Sp computed at each robot operating speed tier, with zone boundary pass/fail check
+    - **Review Dashboard** — KPI tiles (worst-case Sp, sensor tr, human approach speed assumption), findings table
+  </Accordion>
+  <Accordion title="Human approach speed assumptions" icon="person-walking">
+    ISO/TS 15066 Table 1 defines default human approach speeds:
+
+    | Direction | Default vh |
+    |---|---|
+    | Walking toward robot | 1.6 m/s |
+    | Reaching into collaborative workspace | 2.5 m/s |
+    | Hand / arm intrusion | 2.5 m/s |
+
+    The SSM builder uses 1.6 m/s as the default walking approach speed and 2.5 m/s for reaching. Both values can be overridden if risk assessment supports a different assumption, and the reviewer will flag any deviation from the default for justification.
+  </Accordion>
+</AccordionGroup>
+
+## PFL: biofidelic contact measurements
+
+The `pfl-plan-builder` distinguishes two contact types per ISO/TS 15066 clause 5.5.4:
+
+<AccordionGroup>
+  <Accordion title="Transient contact" icon="bolt">
+    Transient contact occurs when the robot strikes a body part and moves past it — contact duration is brief and the body part is not trapped. The force limit for transient contact is the **quasi-static force limit** from ISO/TS 15066 Table A.2 column "Fmax (N)". The PFL builder records the peak measured impact force using a biofidelic measurement system (e.g., a force-instrumented dummy conforming to the measurement guidance in ISO/TS 15066 Annex B).
+
+    ```text
+    Pass criterion: F_measured (transient) ≤ Fmax (N) per Table A.2 for each body region
+    ```
+  </Accordion>
+  <Accordion title="Clamping contact" icon="compress">
+    Clamping contact occurs when a body part is trapped between the robot and a fixed surface — contact is sustained and force can build. The applicable limit is the **clamping force limit** (typically lower than the transient limit) from ISO/TS 15066 Table A.2. The PFL builder records steady-state clamping force measured at the relevant contact geometry.
+
+    ```text
+    Pass criterion: F_measured (clamping) ≤ Fclamping (N) per Table A.2 for each body region
+    ```
+  </Accordion>
+  <Accordion title="Body region coverage" icon="person">
+    ISO/TS 15066 Table A.2 defines limits for 29 body regions across five groups:
+
+    | Group | Example regions |
+    |---|---|
+    | Head and neck | Skull, forehead, temporal region, neck |
+    | Trunk | Sternum, chest, abdomen, pelvis |
+    | Upper extremities | Upper arm, forearm, wrist, hand, finger |
+    | Lower extremities | Thigh, knee, lower leg, ankle, foot |
+    | Special | Eye (exclusion zone — contact not permitted) |
+
+    The PFL builder generates one measurement row per region covered by the robot's reachable workspace and flags any body region where the measured value exceeds the Table A.2 limit.
+  </Accordion>
+</AccordionGroup>
+
+## Hand guiding: device specification
+
+The `cobot-hand-guiding-builder` skill produces a device specification and operating procedure for hand-guided teaching and collaborative operation:
+
+<AccordionGroup>
+  <Accordion title="3-position enabling switch" icon="toggle-on">
+    ISO 10218-1:2025 requires a 3-position enabling switch on hand-guiding devices:
+
+    | Switch position | Robot state |
+    |---|---|
+    | Position 1 (released) | Motion not permitted |
+    | Position 2 (mid-stroke, held) | Motion permitted at reduced speed |
+    | Position 3 (fully depressed / panic) | Motion not permitted — treated as E-stop |
+
+    The builder specifies the switch model, actuation force (N), deadband travel (mm), and failure mode (spring-return to position 1 on release). The reviewer checks the switch specification against ISO 10218-1 enabling device requirements and IEC 60947-5-8.
+  </Accordion>
+  <Accordion title="Guiding speed limits" icon="gauge-simple-low">
+    ISO/TS 15066 clause 5.3 and ISO 10218-1 limit hand-guiding speed to a maximum of 250 mm/s TCP speed. The builder specifies the configured speed limit, the force sensor deadband (threshold below which guiding commands are ignored), and the maximum guiding force threshold above which motion is inhibited.
+  </Accordion>
+</AccordionGroup>
+
+## Standards targeted
+
+| Standard | Scope |
+|---|---|
+| ISO/TS 15066:2016 | Collaborative robots — biomechanical limits, SSM, PFL, hand guiding |
+| ISO 10218-1:2025 | Safety requirements for industrial robots — enabling devices |
+| ISO 10218-2:2025 | Safety requirements for robot integration — collaborative workspaces |
+| IEC 62046 | Safety of machinery — application of protective equipment to detect persons |
+| IEC 60947-5-8 | Low-voltage switchgear — 3-position enabling switches |
+
+<Warning>
+  Eye contact is explicitly excluded from the PFL operating mode in ISO/TS 15066. If the robot's trajectory passes through head-height zones, the cell design must ensure the head and neck region is not reachable under PFL mode, or a safety-rated monitored stop must be triggered when a person is detected in that zone.
+</Warning>
+
+<Tip>
+  Run the `iso15066-biomechanical-limits-builder` before the `pfl-plan-builder` and `ssm-plan-builder`. The biomechanical limits workbook establishes the per-region thresholds that both downstream builders reference — keeping all three workbooks consistent with the same Table A.2 values.
+</Tip>

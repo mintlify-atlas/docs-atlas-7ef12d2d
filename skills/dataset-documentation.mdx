@@ -1,0 +1,125 @@
+---
+title: "AI dataset documentation builder and reviewer (Gebru)"
+description: "Generate a Datasheets for Datasets workbook (Gebru et al.) covering motivation, composition, collection process, uses, distribution, and maintenance sections."
+---
+
+The dataset documentation skill pair produces an audit-ready xlsx workbook following the Datasheets for Datasets framework introduced by Gebru et al. and referenced by ISO/IEC 5469 (Artificial intelligence — Functional safety and AI systems). The builder systematically documents every aspect of a dataset used in a robotics AI/ML application: why the data was collected and by whom, what instances the dataset contains and how they are labelled, the collection methodology and time period, any preprocessing or transformation steps applied, appropriate and inappropriate uses of the dataset, distribution terms and access controls, and the maintenance plan including the errata process. Thorough dataset documentation is a prerequisite for responsible model development, and this workbook serves as the stable input contract consumed by the downstream model card skill.
+
+<Note>
+**Chain position:** This is the entry point of the AI/ML governance lane. Its output feeds into:
+- [`model-card`](/skills/model-card) — model card that references this dataset documentation for training data provenance
+</Note>
+
+## Trigger phrase
+
+```text
+Document the dataset for [AI/ML application]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder produces a multi-tab xlsx workbook styled in NAVY/Calibri. Each tab corresponds to a section of the Gebru et al. Datasheets for Datasets framework.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="Motivation" icon="lightbulb">
+        Why the dataset was created, who funded and conducted the collection, and whether there is a specific task or gap in existing datasets that motivated this collection effort.
+      </Card>
+      <Card title="Composition" icon="layer-group">
+        What instances the dataset represents, the total instance count, label sources and annotation methodology, whether the dataset contains personal information, and any known errors or missing data.
+      </Card>
+      <Card title="Collection process" icon="database">
+        Data collection methodology, instruments used, time period of collection, geographic or operational scope, sampling strategy, and any consent or ethics review process followed.
+      </Card>
+      <Card title="Preprocessing" icon="gears">
+        All cleaning, normalisation, transformation, and augmentation steps applied to the raw data before the dataset was packaged, including software tools and parameter settings used.
+      </Card>
+      <Card title="Uses" icon="check-double">
+        Tasks the dataset is appropriate for, tasks it is explicitly not appropriate for, any known risks of misuse, and guidance for researchers evaluating whether this dataset suits their task.
+      </Card>
+      <Card title="Distribution and maintenance" icon="share-nodes">
+        License terms, access mechanism (public / restricted / proprietary), point-of-contact, update cadence, versioning scheme, errata process, and planned end-of-maintenance date.
+      </Card>
+    </CardGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Parse application description">
+        Extract the AI/ML application domain (object detection, pose estimation, anomaly detection, etc.) and the intended deployment context (robot type, environment, operational conditions) from the trigger phrase.
+      </Step>
+      <Step title="Populate motivation section">
+        Document the dataset creation purpose, funding source, and relationship to existing datasets in the same domain.
+      </Step>
+      <Step title="Document composition and labels">
+        Enumerate the instance types, total count, class distribution, annotation method (human annotator, simulation, semi-supervised), and inter-annotator agreement metric where applicable.
+      </Step>
+      <Step title="Describe collection and preprocessing">
+        Document the data collection setup (sensor types, environments, lighting conditions, robot configurations) and every preprocessing step applied, with parameter values and tool versions.
+      </Step>
+      <Step title="Document uses and restrictions">
+        Explicitly enumerate appropriate tasks, inappropriate tasks, and known risks — including any subgroup or operating condition for which dataset representation is known to be insufficient.
+      </Step>
+      <Step title="Record distribution and maintenance plan">
+        State the license, access mechanism, version identifier, update cadence, errata contact, and the conditions under which the dataset will be retired or superseded.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill consumes the builder's xlsx output without modifying it. It checks section completeness, inappropriate use documentation, and maintenance plan adequacy, then produces a visual dashboard.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="KPI tiles" icon="gauge-high">
+        Section completion rate (of 7 Gebru et al. sections), inappropriate use entries count, maintenance plan presence flag, and open gaps count.
+      </Card>
+      <Card title="Section completeness chart" icon="chart-bar">
+        Bar chart rating the completeness of each of the seven datasheet sections on a three-level scale (complete / partial / missing).
+      </Card>
+      <Card title="Composition analysis panel" icon="pie-chart">
+        Class distribution summary and a flag for any class with fewer than a recommended minimum instance count, indicating potential model bias risk.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings listing section name, finding type (missing field / ambiguous statement / no inappropriate use documented / no errata process), and recommended corrective action.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="Section completeness">
+        Verifies that all seven Gebru et al. sections (Motivation, Composition, Collection Process, Preprocessing, Uses, Distribution, Maintenance) contain substantive responses for every required question, and flags any section with empty or placeholder content.
+      </Accordion>
+      <Accordion title="Inappropriate use documentation">
+        Checks that the Uses section explicitly documents at least one inappropriate use case and any known risks of misuse. A datasheet with no inappropriate use entries is flagged as a critical finding, as absence of documented restrictions implies open-ended deployment.
+      </Accordion>
+      <Accordion title="Maintenance plan adequacy">
+        Validates that the Maintenance section specifies an update cadence, a named point-of-contact, a versioning scheme, and an errata process — and flags any maintenance plan that lacks a mechanism for users to report errors.
+      </Accordion>
+      <Accordion title="ISO/IEC 5469 alignment">
+        Confirms that the dataset documentation addresses the data quality and provenance requirements referenced in ISO/IEC 5469 for AI systems used in safety-relevant applications, including traceability of preprocessing steps.
+      </Accordion>
+    </AccordionGroup>
+
+    <Warning>
+      A datasheet with no documented inappropriate uses will appear as a critical finding. The downstream model card reviewer will inherit this finding and flag the model card's intended use section as incomplete until the dataset datasheet is corrected.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Standards and references
+
+| Reference | Section | Topic |
+|---|---|---|
+| Gebru et al. (2021) | Full paper | Datasheets for Datasets framework |
+| ISO/IEC 5469:2024 | §6 | Data quality requirements for AI in safety systems |
+| ISO/IEC 5469:2024 | §7 | Documentation and traceability requirements |
+| ISO/IEC 42001:2023 | §8.4 | AI system data management requirements |
+
+<Tip>
+Complete the dataset datasheet before beginning model training, not after. Retroactively reconstructing collection methodology, annotation procedures, and preprocessing steps is significantly harder once the team has moved on — and gaps will propagate to the model card's training data provenance section.
+</Tip>

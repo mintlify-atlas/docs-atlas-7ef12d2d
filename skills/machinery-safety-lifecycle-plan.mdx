@@ -1,0 +1,116 @@
+---
+title: "Machinery safety lifecycle plan builder and reviewer"
+description: "Build a safety lifecycle plan per ISO 13849-1/IEC 62061 with design phase gates, V&V activities, validation milestones, and documentation traceability."
+---
+
+The machinery safety lifecycle plan skill pair translates the risk reduction targets established in the ISO 12100 risk assessment into a structured, time-ordered plan that governs every safety-relevant activity from concept through decommissioning. It targets the lifecycle framework defined in ISO 13849-1:2023 and IEC 62061:2021 — the two standards that govern performance level (PL) and safety integrity level (SIL) determination for machinery safety functions — and produces a multi-tab xlsx workbook with phase gates, verification and validation (V&V) activities, validation milestones, and documentation requirements that every downstream skill in the compliance chain can trace back to a lifecycle phase.
+
+<Note>
+**Chain position:** Consumes the output of [`iso12100-risk-assessment`](/skills/iso12100-risk-assessment). Its output feeds into the PLr/SIL determination phase:
+- [`iso13849-plr`](/skills/iso13849-plr) — required PL determination per safety function
+- [`iec62061-sil`](/skills/iec62061-sil) — SIL determination (parallel path)
+</Note>
+
+## Trigger phrase
+
+```text
+Create a machinery safety lifecycle plan for [machine]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder consumes the ISO 12100 risk assessment xlsx and produces a lifecycle plan workbook that maps each safety function to the phases in which it must be designed, verified, validated, and documented.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="Lifecycle phases" icon="timeline">
+        Ordered list of lifecycle phases (concept, design, implementation, verification, validation, commissioning, operation, maintenance, decommissioning) with entry/exit criteria and responsible roles.
+      </Card>
+      <Card title="Phase gate checklist" icon="list-check">
+        Per-phase gate with required inputs, deliverables, and approval signatures. Gates block progression until all mandatory items are closed.
+      </Card>
+      <Card title="V&V activity plan" icon="flask">
+        Verification activities (analysis, inspection, test) and validation activities (functional test, witnessed performance) mapped to each phase and safety function.
+      </Card>
+      <Card title="Documentation register" icon="file-lines">
+        Master list of all required safety documents (risk assessment, functional safety plan, safety requirement specification, validation report, declaration of conformity) with owner, revision, and status.
+      </Card>
+    </CardGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Import ISO 12100 output">
+        Read the residual risk summary and safety function list from the ISO 12100 workbook to establish which functions require PL/SIL determination and which lifecycle phases are affected.
+      </Step>
+      <Step title="Structure lifecycle phases">
+        Populate the lifecycle phases tab with the full phase sequence, assign entry/exit criteria drawn from ISO 13849-1:2023 §4.2 and IEC 62061:2021 §4.1, and assign responsible roles.
+      </Step>
+      <Step title="Generate phase gates">
+        Create gate checklists for each phase transition. Gates reference required upstream documents and downstream deliverables by document ID, ensuring full traceability.
+      </Step>
+      <Step title="Schedule V&V activities">
+        Map each safety function to the verification method (calculation, simulation, test) and validation method (functional safety validation per ISO 13849-1 Annex A or IEC 62061 §12) planned for each phase.
+      </Step>
+      <Step title="Populate documentation register">
+        List every mandatory document from both standards, assign owners, and record current status so the plan serves as a living traceability index.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer verifies that the lifecycle plan covers all phases, that V&V activities are sufficient for the SIL/PL targets identified in the risk assessment, and that documentation traceability is maintained.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="Phase completeness KPI" icon="gauge-high">
+        Count of phases with all entry/exit criteria populated, open phase gates, and missing responsible role assignments.
+      </Card>
+      <Card title="V&V coverage chart" icon="chart-bar">
+        Bar chart of safety functions with verification activities planned vs. not yet planned, broken down by phase.
+      </Card>
+      <Card title="Documentation status" icon="file-circle-check">
+        Stacked status breakdown (draft / in review / approved / missing) for all documents in the documentation register.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings with document reference, finding type, and recommended action. Read-only — no modifications to the source workbook.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="Phase completeness">
+        Verifies that all lifecycle phases defined in ISO 13849-1:2023 §4.2 and IEC 62061:2021 §4.1 are present, that no phases are skipped, and that entry and exit criteria are specific rather than generic.
+      </Accordion>
+      <Accordion title="V&V activity coverage">
+        Confirms that every safety function identified in the ISO 12100 output has at least one verification activity and one validation activity, and that the validation method is appropriate for the PL/SIL target.
+      </Accordion>
+      <Accordion title="Documentation traceability">
+        Checks that every document in the register is traceable to a lifecycle phase and a responsible person, and that mandatory documents from both ISO 13849-1 and IEC 62061 are present.
+      </Accordion>
+    </AccordionGroup>
+
+    <Tip>
+      The reviewer flags any safety function that has a V&V activity planned but no document reference in the documentation register. Resolve these before triggering the PLr or SIL determination skills.
+    </Tip>
+  </Tab>
+</Tabs>
+
+## Standards and clause coverage
+
+| Standard | Clause | Topic |
+|---|---|---|
+| ISO 13849-1:2023 | §4.2 | Safety lifecycle |
+| ISO 13849-1:2023 | §4.4 | Documentation |
+| ISO 13849-1:2023 | Annex A | Validation |
+| IEC 62061:2021 | §4.1 | Safety lifecycle overview |
+| IEC 62061:2021 | §4.5 | Planning for safety validation |
+| IEC 62061:2021 | §12 | Safety validation |
+
+<Info>
+The lifecycle plan is a living document. Update the documentation register status column as documents reach approved state. The declaration of conformity skill reads the documentation register to confirm all required safety documents are approved before generating the DoC.
+</Info>

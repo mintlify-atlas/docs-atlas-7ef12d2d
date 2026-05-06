@@ -1,0 +1,115 @@
+---
+title: "Standards reference: ISO, IEC, ANSI, and OSHA coverage"
+description: "All standards covered by the suite, organized by domain. Each entry lists the standard number, full title, and the skill cluster that references it."
+---
+
+The Robotics Skills Suite is built on a broad foundation of international and national standards spanning machinery safety, collaborative and mobile robots, operational safety, software architecture, verification and validation, artificial intelligence, and industrial cybersecurity. Each builder skill produces deliverables that are traceable to one or more of the standards below, and each paired reviewer skill checks conformance against the same normative requirements. The table within every accordion maps the standard number, its full title, and the cluster of skills that directly reference it.
+
+<AccordionGroup>
+  <Accordion title="Foundation" icon="shield" defaultOpen={true}>
+    The Foundation cluster establishes the baseline risk assessment and lifecycle planning artifacts that every downstream skill in the chain consumes.
+
+    | Standard | Full title | Skill cluster |
+    |----------|-----------|---------------|
+    | **ISO 12100:2010** | Safety of machinery — General principles for design — Risk assessment and risk reduction | Foundation |
+
+    **Skills:** `iso12100-risk-assessment-builder` + reviewer, `machinery-safety-lifecycle-plan-builder` + reviewer, `robot-cell-scope-builder` + reviewer
+  </Accordion>
+
+  <Accordion title="Compliance & Integrity" icon="badge-check">
+    This cluster covers the functional safety standards used to determine Performance Level (PLr) and Safety Integrity Level (SIL), the robot-specific safety requirements, and the European conformity framework.
+
+    | Standard | Full title | Skill cluster |
+    |----------|-----------|---------------|
+    | **ISO 13849-1:2023** | Safety of machinery — Safety-related parts of control systems — Part 1: General principles for design | Compliance & Integrity |
+    | **IEC 62061:2021** | Safety of machinery — Functional safety of safety-related control systems | Compliance & Integrity |
+    | **ISO 10218-1/-2:2025** | Robots and robotic devices — Safety requirements for industrial robots — Part 1: Robots / Part 2: Robot systems and integration | Compliance & Integrity |
+    | **ANSI/RIA R15.06-2012 R2017** | Safety requirements for industrial robots and robot systems | Compliance & Integrity |
+    | **EU Machinery Directive 2006/42/EC** | Directive on machinery (legacy CE marking framework) | Compliance & Integrity |
+    | **EU Machinery Regulation 2023/1230** | Regulation on machinery (successor to Directive 2006/42/EC) | Compliance & Integrity |
+    | **IEC 61508** | Functional safety of electrical/electronic/programmable electronic safety-related systems | Compliance & Integrity |
+
+    **Skills:** `iso13849-plr-builder` + reviewer, `iec62061-sil-builder` + reviewer, `iso10218-compliance-matrix-builder` + reviewer, `ansi-r1506-compliance-matrix-builder` + reviewer, `declaration-of-conformity-builder` + reviewer
+  </Accordion>
+
+  <Accordion title="Cobot" icon="robot">
+    The Cobot cluster addresses the biomechanical and operational requirements specific to collaborative robot deployments, including speed and separation monitoring, power and force limiting, and hand-guiding modes.
+
+    | Standard | Full title | Skill cluster |
+    |----------|-----------|---------------|
+    | **ISO/TS 15066:2016** | Robots and robotic devices — Collaborative robots | Cobot |
+
+    **Skills:** `iso15066-biomechanical-limits-builder` + reviewer, `ssm-plan-builder` + reviewer, `pfl-plan-builder` + reviewer, `cobot-hand-guiding-builder` + reviewer
+  </Accordion>
+
+  <Accordion title="AMR / Mobile" icon="truck">
+    The AMR/Mobile cluster covers driverless industrial trucks and autonomous mobile robots, including risk assessment, operating envelopes, fleet coordination, and wireless coexistence planning.
+
+    | Standard | Full title | Skill cluster |
+    |----------|-----------|---------------|
+    | **ISO 3691-4:2020** | Industrial trucks — Safety requirements and verification — Part 4: Driverless industrial trucks and their systems | AMR / Mobile |
+    | **ANSI/RIA R15.08-1/-2/-3** | Industrial mobile robots — Safety requirements | AMR / Mobile |
+    | **VDA 5050** | Interface for AGV (automated guided vehicle) communication | AMR / Mobile |
+
+    **Skills:** `iso3691-4-risk-assessment-builder` + reviewer, `operating-envelope-builder` + reviewer, `fleet-manager-architecture-builder` + reviewer, `wireless-coexistence-plan-builder` + reviewer
+  </Accordion>
+
+  <Accordion title="Operational" icon="clipboard-list">
+    The Operational cluster produces the procedures that govern day-to-day robot operation, including standard operating procedures, lockout/tagout, and operator qualification matrices.
+
+    | Standard | Full title | Skill cluster |
+    |----------|-----------|---------------|
+    | **OSHA 1910.147** | The control of hazardous energy (lockout/tagout) | Operational |
+    | **OSHA 1910.212** | General machine guarding | Operational |
+
+    **Skills:** `robot-sop-builder` + reviewer, `loto-procedure-builder` + reviewer, `operator-training-matrix-builder` + reviewer
+  </Accordion>
+
+  <Accordion title="ROS2" icon="code">
+    The ROS2 cluster generates software architecture artifacts for ROS 2–based systems, adhering to community conventions for coordinate frames, units, and supported distributions.
+
+    | Standard | Full title | Skill cluster |
+    |----------|-----------|---------------|
+    | **REP 105** | ROS Enhancement Proposal 105 — Coordinate frames for mobile platforms | ROS2 |
+    | **REP 103** | ROS Enhancement Proposal 103 — Standard units of measure and coordinate conventions | ROS2 |
+    | **ROS 2 Humble / Iron / Jazzy** | Supported ROS 2 Long-Term Support and standard releases | ROS2 |
+
+    **Skills:** `ros2-system-architecture-builder` + reviewer, `urdf-model-spec-builder` + reviewer, `behavior-tree-spec-builder` + reviewer, `nav2-config-builder` + reviewer, `tf-tree-spec-builder` + reviewer
+  </Accordion>
+
+  <Accordion title="V&V" icon="flask">
+    The V&V cluster covers performance characterization, factory and site acceptance testing, hardware-in-the-loop test catalogs, and field acceptance with handover documentation.
+
+    | Standard | Full title | Skill cluster |
+    |----------|-----------|---------------|
+    | **ISO 9283:1998** | Manipulating industrial robots — Performance criteria and related test methods | V&V |
+
+    **Skills:** `iso9283-performance-test-builder` + reviewer, `robot-acceptance-protocol-builder` + reviewer, `robot-hil-test-catalog-builder` + reviewer, `robot-field-acceptance-builder` + reviewer
+  </Accordion>
+
+  <Accordion title="AI/ML Governance" icon="brain">
+    The AI/ML Governance cluster produces dataset documentation, model cards, and perception test catalogs for machine-learning components deployed in robotic systems.
+
+    | Standard | Full title | Skill cluster |
+    |----------|-----------|---------------|
+    | **Mitchell et al. Model Cards** | Model Cards for Model Reporting (Mitchell et al., 2019) | AI/ML Governance |
+    | **Gebru et al. Datasheets for Datasets** | Datasheets for Datasets (Gebru et al., 2021) | AI/ML Governance |
+    | **ISO/IEC 5469** | Artificial intelligence — Functional safety and AI systems | AI/ML Governance |
+
+    **Skills:** `dataset-documentation-builder` + reviewer, `model-card-builder` + reviewer, `perception-test-catalog-builder` + reviewer
+  </Accordion>
+
+  <Accordion title="Industrial Cybersecurity" icon="lock">
+    The Cybersecurity cluster produces IEC 62443-aligned risk assessments, OT asset inventories, and zone and conduit segmentation plans for industrial automation and control systems.
+
+    | Standard | Full title | Skill cluster |
+    |----------|-----------|---------------|
+    | **IEC 62443 series** | Industrial automation and control systems (IACS) — Security for industrial automation and control systems | Industrial Cybersecurity |
+
+    **Skills:** `iec62443-risk-assessment-builder` + reviewer, `ot-asset-inventory-builder` + reviewer, `zone-conduit-plan-builder` + reviewer
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  Standards evolve. The suite targets the edition listed above for each standard. When a new edition is published, download the updated `.skill` files from the repository — the skill frontmatter declares which edition it implements.
+</Note>

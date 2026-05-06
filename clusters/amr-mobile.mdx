@@ -1,0 +1,193 @@
+---
+title: "AMR and mobile robot skills: ISO 3691-4 and fleet ops"
+description: "4 AMR skill pairs covering ISO 3691-4 risk assessment, operating envelope zones, VDA 5050 fleet manager architecture, and Wi-Fi/UWB/5G coexistence planning."
+---
+
+Autonomous mobile robots and driverless industrial trucks introduce documentation requirements that differ substantially from fixed-installation robots. An AMR operates across a dynamic shared environment — it shares aisles with pedestrians and forklifts, depends on wireless infrastructure for fleet coordination, and must define precisely which zones it may traverse, which it enters only under restricted conditions, and which are permanently prohibited. The AMR cluster provides four builder and reviewer pairs that address this full scope: ISO 3691-4 risk assessment for driverless industrial trucks, an operating envelope workbook that formalises the hazard zone map, a fleet manager architecture document that specifies multi-AMR coordination using the VDA 5050 protocol, and a wireless coexistence plan covering Wi-Fi, UWB, and 5G channel allocation plus EMC analysis. These four documents constitute the core AMR safety and operations file required for site acceptance and regulatory compliance.
+
+## How the AMR cluster chains
+
+<Steps>
+  <Step title="Run the ISO 3691-4 risk assessment">
+    The `iso3691-4-risk-assessment-builder` produces the site-level risk assessment for driverless industrial truck operation. It identifies hazards from travel, load handling, charging, and pedestrian interaction, estimates risk per ISO 3691-4:2020 clause 4, and assigns risk reduction measures. This workbook anchors every downstream AMR artifact.
+  </Step>
+  <Step title="Define the operating envelope">
+    The `operating-envelope-builder` reads the risk assessment and produces a formalised hazard zone map with four zone types: operational (autonomous travel permitted), restricted (reduced speed or escort required), no-go (robot entry prohibited), and charging (stationary charging only). Zone boundaries are specified as facility coordinate pairs or CAD reference layers.
+  </Step>
+  <Step title="Specify the fleet manager architecture">
+    The `fleet-manager-architecture-builder` produces the multi-AMR coordination architecture document, including VDA 5050 interface specification, traffic management logic, deadlock resolution rules, order dispatch protocol, and fleet manager hardware/software configuration. This is the primary handover document between the AMR OEM and the facility IT/OT teams.
+  </Step>
+  <Step title="Plan wireless coexistence">
+    The `wireless-coexistence-plan-builder` produces the RF channel allocation plan and EMC analysis for all wireless technologies used by the AMR fleet: Wi-Fi (802.11), UWB positioning, and 5G/LTE (where applicable). It identifies co-channel and adjacent-channel interference risks and specifies mitigation measures.
+  </Step>
+</Steps>
+
+## Skill pairs
+
+<CardGroup cols={2}>
+  <Card title="ISO 3691-4 risk assessment" icon="truck" href="/skills/iso3691-4-risk-assessment">
+    **Standards:** ISO 3691-4:2020, ANSI/RIA R15.08-1/-2/-3
+
+    Builder produces the full driverless industrial truck risk assessment covering travel, load handling, person detection, charging, and emergency stop scenarios. Reviewer validates clause-by-clause coverage against ISO 3691-4:2020 and R15.08 and generates a risk level distribution chart.
+  </Card>
+  <Card title="Operating envelope" icon="map" href="/skills/operating-envelope">
+    **Standard:** ISO 3691-4:2020, clause 5.3
+
+    Builder produces the hazard zone map with operational, restricted, no-go, and charging zone definitions including facility coordinate boundaries and posted speed limits. Reviewer validates zone completeness, boundary continuity, and conformance to ISO 3691-4 zone specification requirements.
+  </Card>
+  <Card title="Fleet manager architecture" icon="network-wired" href="/skills/fleet-manager-architecture">
+    **Standards:** VDA 5050 v2.0, ISO 3691-4:2020
+
+    Builder produces the multi-AMR fleet coordination architecture document: VDA 5050 interface spec, traffic management topology, order dispatch protocol, deadlock detection and resolution rules, fleet manager hardware specification, and OT network integration requirements. Reviewer validates VDA 5050 interface completeness and traffic management coverage.
+  </Card>
+  <Card title="Wireless coexistence plan" icon="wifi" href="/skills/wireless-coexistence-plan">
+    **Standards:** IEEE 802.11, 3GPP 5G NR, IEC 61000-4 (EMC)
+
+    Builder produces the RF channel allocation plan and EMC analysis for Wi-Fi, UWB, and 5G/LTE. Identifies co-channel interference sources, specifies channel assignments, antenna placement, transmit power limits, and EMC shielding requirements. Reviewer validates channel plan against site RF survey data and flags interference risks.
+  </Card>
+</CardGroup>
+
+## Operating envelope: zone definitions
+
+The `operating-envelope-builder` workbook establishes four zone types per ISO 3691-4:2020 clause 5.3:
+
+<AccordionGroup>
+  <Accordion title="Operational zones" icon="check-circle" defaultOpen={false}>
+    Operational zones are areas where the AMR may travel autonomously at its configured maximum speed. The builder records:
+
+    - Zone identifier and plain-language description
+    - Facility coordinate boundary (x1,y1) → (x2,y2) polygon or CAD layer reference
+    - Maximum permitted AMR speed (m/s)
+    - Floor surface type and condition (concrete, epoxy, expansion joints)
+    - Pedestrian traffic classification (none, occasional, regular)
+    - Posted signage requirements
+
+    ```text
+    Example: ZONE-OP-01, Aisle 3 northbound lane, 1.5 m/s max, concrete,
+    occasional pedestrian, reflective floor markers at 5 m intervals
+    ```
+  </Accordion>
+  <Accordion title="Restricted zones" icon="triangle-exclamation" defaultOpen={false}>
+    Restricted zones are areas where AMR entry is permitted only under specific conditions — for example, at reduced speed, in escort mode, or with audible/visual warning activated. The builder records:
+
+    - Triggering condition for restricted access (manual clearance, time-of-day, sensor input)
+    - Reduced speed limit applicable in restricted mode (m/s)
+    - Required warnings (audible horn, rotating beacon, floor projection)
+    - Pedestrian clearance protocol
+
+    ```text
+    Example: ZONE-RE-01, Dock door 7 area, entry only during receiving window
+    06:00–14:00, 0.5 m/s max, audible + visual warning activated
+    ```
+  </Accordion>
+  <Accordion title="No-go zones" icon="ban" defaultOpen={false}>
+    No-go zones are areas where AMR entry is permanently prohibited by virtual or physical barriers. The builder specifies the prohibition enforcement mechanism (virtual fence in fleet manager, physical barrier, or both) and the sensor-based intrusion detection that triggers an immediate stop if an AMR approaches the boundary.
+  </Accordion>
+  <Accordion title="Charging zones" icon="bolt" defaultOpen={false}>
+    Charging zones specify the location and configuration of each charging station: station identifier, charging technology (opportunity, fast, overnight), docking approach vector, floor marking requirements, and the person detection requirement while a robot is docked. A robot in a charging zone must still trigger a safety-rated stop if a person enters the station footprint.
+  </Accordion>
+</AccordionGroup>
+
+## Fleet manager architecture: VDA 5050 integration
+
+The `fleet-manager-architecture-builder` produces a complete VDA 5050 v2.0 interface specification as part of the fleet manager architecture document.
+
+<AccordionGroup>
+  <Accordion title="VDA 5050 overview" icon="plug" defaultOpen={false}>
+    VDA 5050 is the industry-standard protocol for communication between an AGV/AMR fleet manager (Master Control System, MCS) and individual vehicles. It defines a JSON message schema over MQTT for:
+
+    - **Order messages** — task assignments with node, edge, and action sequences
+    - **Order update messages** — modifications to in-progress orders
+    - **State messages** — periodic vehicle status including position, battery, errors, and order progress
+    - **Visualization messages** — higher-frequency position updates for fleet manager UI
+    - **Connection messages** — online/offline status
+    - **Instant action messages** — immediate commands (pause, resume, cancel order)
+
+    The fleet manager architecture builder specifies the MQTT broker configuration, topic namespace, QoS levels, message schema versions, and the MCS-side handling logic for each message type.
+  </Accordion>
+  <Accordion title="Traffic management and deadlock resolution" icon="traffic-light" defaultOpen={false}>
+    The builder documents the traffic management topology and deadlock prevention strategy:
+
+    - **Node and edge graph** — facility map decomposed into nodes (stop points, intersections, charging stations) and directed edges (travel segments) with permitted speed and direction per edge
+    - **Blocking prevention** — reservation-based or token-based edge locking to prevent head-on conflicts
+    - **Deadlock detection** — cycle detection in the resource reservation graph with configurable timeout
+    - **Deadlock resolution** — priority-based backout rules specifying which AMR reverses to a nominated wait point
+
+    ```text
+    Example deadlock resolution rule:
+    If AMR-A holds edge E1 awaiting E2 and AMR-B holds E2 awaiting E1,
+    lower-priority AMR backs out to nearest nominated wait node within 10 s
+    ```
+  </Accordion>
+  <Accordion title="OT network integration" icon="server" defaultOpen={false}>
+    The fleet manager architecture document specifies the OT network topology required to support the AMR fleet:
+
+    - MQTT broker placement (on-premises or edge)
+    - Network segmentation between AMR WLAN and facility OT/IT networks
+    - Firewall rules for MCS–vehicle communication
+    - Time synchronisation (PTP/NTP) requirements for position and log timestamp accuracy
+    - Redundancy requirements for MQTT broker and MCS server
+  </Accordion>
+</AccordionGroup>
+
+## Wireless coexistence: channel planning
+
+The `wireless-coexistence-plan-builder` covers three wireless technologies typically used in AMR deployments:
+
+<AccordionGroup>
+  <Accordion title="Wi-Fi (IEEE 802.11)" icon="wifi" defaultOpen={false}>
+    The builder produces a Wi-Fi channel allocation plan for the facility:
+
+    - Frequency band selection (2.4 GHz, 5 GHz, 6 GHz / Wi-Fi 6E)
+    - Non-overlapping channel assignment per access point (channels 1/6/11 for 2.4 GHz; 36/40/44/48/… for 5 GHz)
+    - Access point placement and RSSI coverage targets (typically ≥ −65 dBm throughout operational zones)
+    - Roaming protocol (802.11r fast BSS transition for latency-sensitive fleet control traffic)
+    - WPA3 encryption and 802.1X authentication requirements
+
+    ```text
+    Minimum RSSI for fleet control traffic: −65 dBm
+    Roaming handoff latency target:        < 50 ms (802.11r)
+    Channel plan review trigger:           Any new AP added within 50 m
+    ```
+  </Accordion>
+  <Accordion title="UWB positioning" icon="crosshairs" defaultOpen={false}>
+    UWB (Ultra-Wideband) is used for sub-decimetre AMR positioning in GPS-denied environments. The builder records:
+
+    - UWB anchor node placement and facility coordinate positions
+    - Channel number (FiRa / IEEE 802.15.4z channel, e.g., channel 5: 6.49 GHz centre)
+    - Co-existence with Wi-Fi 6 GHz band (UWB channels above 6 GHz may overlap with 6 GHz Wi-Fi upper UNII-5 band)
+    - Anchor update rate and positioning latency budget
+
+    The builder flags potential interference between UWB channels and adjacent Wi-Fi 6 GHz allocations and recommends guard-band or frequency offset mitigations.
+  </Accordion>
+  <Accordion title="5G / LTE (where applicable)" icon="signal" defaultOpen={false}>
+    For facilities using private 5G NR (CBRS band 48 in the US, or licensed mmWave/sub-6 GHz) or public LTE for AMR control fallback, the builder documents:
+
+    - Band and channel allocation, PLMN ID for private 5G networks
+    - Radio unit (RU) placement and coverage map
+    - Handoff parameters between 5G NR and Wi-Fi for dual-mode AMRs
+    - EMC analysis against facility equipment operating in adjacent bands (e.g., induction chargers, motor drives)
+
+    EMC analysis references IEC 61000-4-3 (radiated immunity) and IEC 61000-4-6 (conducted immunity) for facility equipment that may be susceptible to AMR transmissions.
+  </Accordion>
+</AccordionGroup>
+
+## Standards targeted
+
+| Standard | Scope |
+|---|---|
+| ISO 3691-4:2020 | Safety requirements for driverless industrial trucks |
+| ANSI/RIA R15.08-1/-2/-3 | North American requirements for industrial mobile robots |
+| VDA 5050 v2.0 | Fleet manager ↔ AGV/AMR communication protocol |
+| IEEE 802.11 (Wi-Fi 4/5/6/6E) | Wireless LAN channel planning |
+| IEEE 802.15.4z | UWB ranging and positioning |
+| 3GPP 5G NR | Private 5G network specifications |
+| IEC 61000-4 series | EMC immunity testing for facility equipment |
+
+<Info>
+  VDA 5050 v2.0 introduced breaking changes to the order message schema compared to v1.1. The fleet manager architecture builder generates a version field in every interface specification tab so that vehicle firmware and MCS software version compatibility is explicitly documented.
+</Info>
+
+<Tip>
+  Run the wireless coexistence plan before finalising access point placement. The builder's channel overlap analysis may require AP repositioning or channel reassignment — changes that are significantly cheaper to make on paper than after infrastructure installation.
+</Tip>

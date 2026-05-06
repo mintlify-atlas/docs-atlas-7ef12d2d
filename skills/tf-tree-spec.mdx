@@ -1,0 +1,73 @@
+---
+title: "ROS2 TF tree specification builder and reviewer skill"
+description: "Generate a TF frame hierarchy per REP 105 and REP 103: map→odom→base_link chain, sensor frames, transform sources, publisher nodes, and update rates."
+---
+
+The `tf-tree-spec-builder` produces a TF frame hierarchy specification following REP 105 (coordinate frames for mobile platforms) and REP 103 (units and coordinate conventions). It documents every frame in the robot's transform tree — their parent-child relationships, whether each transform is static or dynamic, the publishing node, and the required update rate. It is a terminal node in the ROS2 lane, consuming both the system architecture and URDF specification.
+
+<Note>
+**Chain position:** Consumes `ros2-system-architecture-builder` and `urdf-model-spec-builder` outputs. Terminal node in the ROS2 lane.
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Specify the TF tree for [robot system description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | Frame Hierarchy | Frame name, parent frame, transform type (static/dynamic), publisher node, update rate (Hz) |
+    | Static Transforms | Frame pair, translation xyz, rotation rpy, rationale |
+    | Dynamic Transforms | Frame pair, source (SLAM/odometry/EKF/joint_states), latency budget |
+    | Sensor Frames | Sensor name, frame name, parent, calibration status |
+
+    **REP 105 standard hierarchy:**
+    ```
+    map          ← Global fixed frame (SLAM / localization output)
+    └── odom     ← Continuous odometry frame (no discrete jumps)
+        └── base_link       ← Robot body origin
+            ├── base_footprint  ← Projection onto ground plane
+            ├── laser_frame     ← 2D LiDAR
+            ├── camera_frame    ← RGB/depth camera optical frame
+            ├── imu_link        ← IMU sensor
+            └── [arm links from URDF joint states]
+    ```
+
+    **Frame semantics per REP 105:**
+
+    | Frame | Publisher | Type | Semantic |
+    |-------|-----------|------|----------|
+    | map | slam_toolbox / amcl | Dynamic | Global fixed — can jump on loop closure |
+    | odom | robot_localization (EKF) | Dynamic | Continuous — never jumps |
+    | base_link | robot_state_publisher | Dynamic | Robot body — from joint_states |
+    | sensor frames | robot_state_publisher | Static | Fixed offsets from URDF |
+  </Tab>
+  <Tab title="Reviewer">
+    The `tf-tree-spec-checklist-reviewer` validates the TF specification for REP 105 compliance and transform chain completeness.
+
+    **Dashboard components:**
+    - KPI tiles: total frame count, static transform count, dynamic transform count, sensor frame count
+    - Compliance bar: REP 105 / REP 103 compliance score
+    - Findings table: missing frames, incorrect parent assignments, REP 103 axis violations
+
+    **Checks performed:**
+    - REP 105 hierarchy present: map → odom → base_link chain exists
+    - odom frame publisher identified (typically robot_localization or wheel odometry)
+    - map-to-odom transform source identified (SLAM or localization node)
+    - All URDF links have corresponding TF frames
+    - Sensor frame offsets match URDF static transforms
+    - Update rates adequate for sensor fusion (IMU ≥ 100 Hz, odometry ≥ 50 Hz)
+    - REP 103 axis convention: x-forward, y-left, z-up for base_link
+  </Tab>
+</Tabs>
+
+## Standards coverage
+
+| Standard | Relevance |
+|----------|-----------|
+| REP 105 | Coordinate frames for mobile platforms — defines map/odom/base_link semantics |
+| REP 103 | Standard units and coordinate conventions for ROS |

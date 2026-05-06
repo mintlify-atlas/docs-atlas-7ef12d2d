@@ -1,0 +1,142 @@
+---
+title: "CE marking Declaration of Conformity builder and reviewer"
+description: "Generate a CE marking Declaration of Conformity per EU Machinery Regulation 2023/1230 with machine ID, harmonized standards list, and authorized signatory."
+---
+
+The Declaration of Conformity (DoC) skill pair generates the final legal document that closes the CE marking compliance chain for machinery placed on the EU market. It targets EU Machinery Regulation 2023/1230 — which replaces Machinery Directive 2006/42/EC for machinery placed on the EU market from 14 January 2027 — and produces a structured DoC that identifies the machine, lists the applicable directives or regulations and harmonized standards applied, names the authorized signatory and their role, and (where applicable) identifies the notified body involved in conformity assessment. The builder consumes the closed compliance matrices and the PLr/SIL determination workbooks to auto-populate the harmonized standards list with the standards whose evidence is confirmed complete, ensuring that no standard is declared without traceable evidence.
+
+<Note>
+**Chain position:** This is the final output of the compliance chain. It consumes:
+- [`iso10218-compliance-matrix`](/skills/iso10218-compliance-matrix) — integrator compliance evidence
+- [`ansi-r1506-compliance-matrix`](/skills/ansi-r1506-compliance-matrix) — North American compliance evidence (if applicable)
+- [`iso13849-plr`](/skills/iso13849-plr) — safety function integrity evidence
+- [`iec62061-sil`](/skills/iec62061-sil) — SIL evidence (if used instead of or in addition to PLr)
+
+No downstream skills consume the DoC within the suite — it is the deliverable handed to the customer or notified body.
+</Note>
+
+## Trigger phrase
+
+```text
+Generate a Declaration of Conformity for [machine/robot cell]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder produces a formal DoC document in xlsx format (for editing and signature) and a locked PDF rendering. It pulls machine identification, standards references, and evidence status from upstream compliance matrix outputs.
+
+    ### Document elements
+
+    <CardGroup cols={2}>
+      <Card title="Machine identification" icon="tag">
+        Machine description, machine type, serial number or serial number range, year of manufacture, and manufacturer name and address — as required by EU Machinery Regulation 2023/1230 Annex IV, Part A.
+      </Card>
+      <Card title="Applicable legislation" icon="scale-balanced">
+        EU Machinery Regulation 2023/1230 (or Directive 2006/42/EC if the transition period applies), plus any other applicable directives (Low Voltage Directive 2014/35/EU, EMC Directive 2014/30/EU, RoHS where applicable).
+      </Card>
+      <Card title="Harmonized standards list" icon="list-check">
+        Auto-populated from the compliance matrix evidence register — only standards with all compliance-critical clauses marked compliant are included. Each standard entry includes the full reference number, edition year, and title.
+      </Card>
+      <Card title="Notified body reference" icon="building">
+        Notified body name, EU notification number, and certificate reference (required only where a notified body was involved in conformity assessment for Annex I essential health and safety requirements that cannot be met by application of harmonized standards alone).
+      </Card>
+      <Card title="Authorized signatory" icon="pen-to-square">
+        Name, title, company, date, place of signature, and declaration of authority. The signatory must be a person empowered to bind the manufacturer legally.
+      </Card>
+    </CardGroup>
+
+    ### Regulatory transition handling
+
+    <AccordionGroup>
+      <Accordion title="Machinery Directive 2006/42/EC vs. Regulation 2023/1230">
+        The EU Machinery Regulation 2023/1230 entered into force on 19 July 2023 and applies to machinery placed on the EU market from 14 January 2027. Between those dates, manufacturers may choose either instrument. The builder defaults to the Regulation but generates a Directive-compliant DoC if the installation date is before January 2027 and the Directive is selected.
+      </Accordion>
+      <Accordion title="UKCA marking (post-Brexit)">
+        For machinery placed on the GB market, a UKCA marking DoC is required instead of CE. The builder generates a separate UKCA DoC section referencing the equivalent UK-adopted standards (BS EN ISO 10218-1/-2, BS EN ISO 13849-1, BS EN IEC 62061) when the GB market is selected.
+      </Accordion>
+    </AccordionGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Import compliance matrix evidence">
+        Read the evidence register and compliance status from the ISO 10218 compliance matrix (and ANSI R15.06 matrix if applicable). Verify that all clauses marked compliant have available evidence documents.
+      </Step>
+      <Step title="Import safety function integrity evidence">
+        Read achieved PL / SIL data from the PLr and/or SIL determination workbooks. Confirm that all safety functions have achieved PL ≥ PLr or SIL ≥ SILr before proceeding.
+      </Step>
+      <Step title="Check for open gaps">
+        Halt DoC generation if any open/pending clause rows remain in the compliance matrices. List open gaps in an output warning with the clause reference and gap description.
+      </Step>
+      <Step title="Auto-populate harmonized standards list">
+        Compile the list of harmonized standards whose evidence is confirmed complete. Include full standard reference, edition year, and OJ reference number where applicable.
+      </Step>
+      <Step title="Generate DoC document">
+        Produce the structured DoC in xlsx and PDF formats. Populate all required fields from upstream data. Leave signatory fields blank for manual completion by the authorized person.
+      </Step>
+    </Steps>
+
+    <Warning>
+      The builder will not generate a DoC if open gaps remain in the compliance matrices. Resolve all non-compliant and pending clause rows before triggering this skill, or use the override flag and document the justification for the open items.
+    </Warning>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer verifies regulatory accuracy, standards list completeness, and signatory authority before the DoC is issued to a customer or notified body.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="DoC completeness KPI" icon="gauge-high">
+        Count of required DoC fields populated vs. empty. Flags any mandatory field (machine identification, applicable regulation, authorized signatory) that is blank.
+      </Card>
+      <Card title="Standards list audit" icon="list-check">
+        Comparison of harmonized standards declared in the DoC against the standards whose evidence is confirmed complete in the compliance matrix evidence register. Flags any standard declared without confirmed evidence.
+      </Card>
+      <Card title="Regulatory reference accuracy" icon="scale-balanced">
+        Verification that directive/regulation references are current (no expired directives, correct OJ references), and that the transition period applicability is correctly determined.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings with DoC field reference, finding type (missing field, incorrect reference, standards evidence gap), and recommended action.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="Standards list completeness">
+        Verifies that all harmonized standards applied during design are listed in the DoC, including standards for control systems (ISO 13849-1 or IEC 62061), electrical equipment (IEC 60204-1), and robot integration (ISO 10218-1/-2). Flags any standard referenced in the compliance matrix evidence register that is absent from the DoC standards list.
+      </Accordion>
+      <Accordion title="Regulatory reference accuracy">
+        Confirms that the Machinery Regulation or Directive reference is correct, that the applicable essential health and safety requirements (EHSRs) from Annex III are addressed, and that the OJ reference for each harmonized standard is the current version (not an outdated edition that has lost its presumption of conformity).
+      </Accordion>
+      <Accordion title="Signatory authority">
+        Checks that the authorized signatory field is populated, that the declared title indicates legal authority to bind the manufacturer, and that the place and date of signature are present as required by Annex IV.
+      </Accordion>
+      <Accordion title="Notified body consistency">
+        If a notified body is referenced, confirms that the notified body number matches the EU NANDO database, that the certificate reference is present, and that the scope of the certificate covers the machine type declared.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+## Regulatory and standards framework
+
+| Document | Role |
+|---|---|
+| EU Machinery Regulation 2023/1230 | Primary legislation — applies from 14 January 2027 |
+| EU Machinery Directive 2006/42/EC | Predecessor — applies to machinery placed on market before January 2027 |
+| ISO 10218-1/-2:2025 | Harmonized standard — robot design and integration |
+| ISO 13849-1:2023 | Harmonized standard — safety-related control systems (PL) |
+| IEC 62061:2021 | Harmonized standard — safety-related electrical control systems (SIL) |
+| IEC 60204-1 | Harmonized standard — electrical equipment of machines |
+| EU NANDO database | Official register of notified bodies |
+
+<Tip>
+Issue the DoC only after the compliance matrix reviewer has run and returned zero critical findings. Retain the full set of upstream workbooks (risk assessment, PLr/SIL determination, compliance matrices) as the technical file supporting the DoC for the ten-year retention period required by EU Machinery Regulation 2023/1230 Article 23.
+</Tip>
+
+<Info>
+The DoC is a legal declaration made by the manufacturer. The builder generates a draft for review — the authorized signatory must review and sign the final document. Digital signature workflows are supported via the PDF output format.
+</Info>

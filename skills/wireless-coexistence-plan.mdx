@@ -1,0 +1,70 @@
+---
+title: "AMR wireless coexistence plan builder and reviewer"
+description: "Generate a Wi-Fi, UWB, and 5G channel plan with interference analysis, EMC assessment, and RSSI margins for safety-critical AMR communications."
+---
+
+The `wireless-coexistence-plan-builder` produces a wireless coexistence plan covering Wi-Fi 6/6E, UWB, and 5G private network spectrum allocation for AMR fleet environments. It performs co-channel interference analysis, documents EMC compliance requirements, defines RSSI thresholds for safety-critical robot communications, and produces a frequency reuse plan. It is the terminal skill in the AMR lane, consuming the fleet manager architecture as its upstream input.
+
+<Note>
+**Chain position:** Consumes `fleet-manager-architecture-builder` output. Terminal node in the AMR lane.
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Create a wireless coexistence plan for [AMR facility/fleet description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | Spectrum Inventory | Technology, frequency band, channel plan, transmit power, coverage area |
+    | Co-channel Analysis | Interferer list, separation distance, co-channel interference margin (dB) |
+    | RSSI Requirements | Safety-critical link, minimum RSSI threshold, packet loss budget, latency budget |
+    | EMC Compliance | Applicable directive, immunity level, conducted/radiated emission limits |
+    | Frequency Reuse Plan | Zone map with assigned channels per zone to minimize co-channel interference |
+    | 5G Private Network | PLMN ID, band, bandwidth, core network type (standalone vs. NSA) |
+
+    **Technologies and bands:**
+
+    | Technology | Band | Primary use in AMR |
+    |-----------|------|-------------------|
+    | Wi-Fi 6 (802.11ax) | 2.4 / 5 GHz | Fleet command & control, VDA 5050 |
+    | Wi-Fi 6E | 6 GHz | High-density environments, lower interference |
+    | UWB | 6–8.5 GHz | Precise indoor positioning (±10 cm) |
+    | 5G private (FR1) | 3.5 GHz (n78) | Large facilities, deterministic latency |
+    | Bluetooth | 2.4 GHz | Non-safety only (diagnostic, config) |
+
+    <Warning>
+      Bluetooth must not be used for safety-critical AMR communication channels. Use Wi-Fi 6 or 5G for VDA 5050 fleet management links.
+    </Warning>
+  </Tab>
+  <Tab title="Reviewer">
+    The `wireless-coexistence-plan-checklist-reviewer` validates the plan for interference margins and safety link adequacy.
+
+    **Dashboard components:**
+    - KPI tiles: technology count, interference margin compliance %, safety link RSSI margin (dB)
+    - Compliance bar: EMC directive coverage
+    - Findings table: insufficient interference margins, undocumented safety links, missing EMC assessment
+
+    **Checks performed:**
+    - All safety-critical VDA 5050 links have RSSI margins documented
+    - Co-channel interference margin ≥ 10 dB for safety-critical links
+    - Frequency reuse plan prevents co-channel overlap in adjacent AMR zones
+    - EMC compliance assessed against applicable directive (RED 2014/53/EU or equivalent)
+    - 5G or Wi-Fi 6 used for all safety-critical links (no Bluetooth)
+    - UWB positioning accuracy adequate for operating envelope boundary enforcement
+  </Tab>
+</Tabs>
+
+## Standards coverage
+
+| Standard | Relevance |
+|----------|-----------|
+| IEC 62443 | OT cybersecurity — wireless network segmentation |
+| EU Radio Equipment Directive 2014/53/EU | CE marking for radio equipment |
+| EMC Directive 2014/30/EU | Electromagnetic compatibility |
+| IEEE 802.11ax (Wi-Fi 6/6E) | Wi-Fi protocol standard |
+| VDA 5050 | AMR/AGV fleet communication protocol |

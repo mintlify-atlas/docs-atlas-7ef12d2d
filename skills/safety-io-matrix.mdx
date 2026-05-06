@@ -1,0 +1,128 @@
+---
+title: "Robot cell safety I/O matrix builder and reviewer skill"
+description: "Build the F-DI/F-DO safety I/O matrix for a robot cell, assigning safety categories, response times, and PL/SIL ratings per ISO 13849-1 and IEC 62061."
+---
+
+The safety I/O matrix builder produces a structured xlsx workbook that catalogs every safety-rated digital input (F-DI) and safety-rated digital output (F-DO) in a robot cell. Each row defines a safety function by name, traces it from its input signal source through to its output signal destination, assigns the required safety category (B through 4 per ISO 13849-1), documents the response time per channel, and records the required Performance Level (PL) or Safety Integrity Level (SIL) assignment. The matrix is the authoritative cross-reference document between the physical wiring, the safety relay or controller configuration, and the risk assessment findings — and it feeds directly into the interlock and E-stop architecture that is designed against it.
+
+<Tabs>
+  <Tab title="Builder">
+    The builder skill ingests the cell layout xlsx, EOAT specification xlsx, and a list of safety functions derived from the risk assessment, and produces a multi-tab audit-ready xlsx workbook styled in NAVY/Calibri with ISO 13849-1 category color coding.
+
+    **Trigger phrase**
+
+    ```text
+    Build a safety I/O matrix for [robot cell]
+    ```
+
+    **Workbook tabs**
+
+    <Steps>
+      <Step title="F-DI Register">
+        One row per safety-rated digital input channel: safety function name, input device (E-stop button, light curtain, gate switch, enabling device, two-hand control, pressure mat), input signal address (PLC rack/slot/channel), channel count (single or dual), category assignment, and response time (ms).
+      </Step>
+      <Step title="F-DO Register">
+        One row per safety-rated digital output channel: safety function name, output device (safety relay, contactor, servo drive enable, brake release), output signal address, channel count, category assignment, and response time (ms).
+      </Step>
+      <Step title="PL/SIL Assignment">
+        Per-safety-function PL (a–e) and SIL (1–3) assignment table, tracing each assignment back to the PLr (required PL) determined by the upstream iso13849-plr skill. Documents the architecture (single channel, dual channel with/without monitoring) supporting each PL/SIL claim.
+      </Step>
+      <Step title="Response Time Budget">
+        End-to-end response time calculation per safety function: sensor detection time + F-DI scan time + safety relay/controller response time + F-DO actuator response time. Compared against the maximum allowable response time derived from the ISO 13857 safety distance.
+      </Step>
+      <Step title="Test Interval Schedule">
+        Per-channel proof test interval (months), test method, and responsible role. Includes demand rate assumptions used in PL/SIL calculations.
+      </Step>
+    </Steps>
+
+    **Key signal categories**
+
+    <CardGroup cols={2}>
+      <Card title="E-stop inputs (F-DI)" icon="circle-stop">
+        Dual-channel, direct-opening mechanical contacts per ISO 13850. Category 3 or 4 depending on PLr. Each E-stop device appears as two F-DI rows (channel A and channel B).
+      </Card>
+      <Card title="Guard monitoring inputs (F-DI)" icon="door-closed">
+        Interlocked access gate switches and safety light curtains. Category 2, 3, or 4 depending on the risk assessment result. Includes enabling device inputs for teach mode.
+      </Card>
+      <Card title="Drive and brake outputs (F-DO)" icon="power-off">
+        Safety-rated drive enable outputs and brake release outputs. Dual-channel where PLr ≥ PLd. Response time must not exceed the safety distance budget.
+      </Card>
+      <Card title="Gripper and EOAT outputs (F-DO)" icon="hand">
+        Safety-rated outputs to gripper fail-safe solenoids and EOAT sensors designated as safety-relevant in the EOAT specification. Documents fail-safe de-energization behavior.
+      </Card>
+    </CardGroup>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill ingests the builder's xlsx output and produces a confirmation-measures checklist plus a visual dashboard. It never modifies the source artifact — all gaps are recorded in a Recommended Actions table.
+
+    **Dashboard components**
+
+    <CardGroup cols={2}>
+      <Card title="KPI tile: channel completeness" icon="table-cells">
+        Count of F-DI and F-DO channels with complete entries (device, address, category, response time, PL/SIL) out of the total channels identified in the cell layout and EOAT specification.
+      </Card>
+      <Card title="Category distribution pie chart" icon="chart-pie">
+        Breakdown of safety function count by assigned category (B, 1, 2, 3, 4) for both F-DI and F-DO, highlighting any category assignments that appear inconsistent with the stated PLr.
+      </Card>
+      <Card title="Response time compliance bar" icon="chart-bar">
+        Per-safety-function end-to-end response time vs. maximum allowable response time from the safety distance budget. RAG status for each function.
+      </Card>
+      <Card title="Findings table" icon="triangle-exclamation">
+        Structured list of matrix gaps — missing channels, category-response time mismatches, untraced PL/SIL assignments — with severity and recommended action.
+      </Card>
+    </CardGroup>
+
+    **Reviewer checks**
+
+    <AccordionGroup>
+      <Accordion title="Channel completeness">
+        Cross-references the F-DI and F-DO register against the cell layout (every interlocked access point, every light curtain, every E-stop button) and the EOAT specification (every safety-relevant sensor and gripper solenoid). Flags any physical device without a corresponding matrix row.
+      </Accordion>
+      <Accordion title="Category-response time consistency">
+        Verifies that the category assignment (B, 1, 2, 3, 4) is consistent with the documented architecture (single channel, dual channel with monitoring) and that the response time for each category is achievable with the specified hardware. Category 2 requires a test pulse interval shorter than the demand interval; Category 3/4 requires dual-channel monitoring.
+      </Accordion>
+      <Accordion title="PL/SIL traceability to PLr output">
+        Confirms that every PL assignment in the matrix is traceable to a PLr value in the upstream iso13849-plr workbook. Flags any safety function where the achieved PL is below the required PLr, or where the PLr source is undocumented.
+      </Accordion>
+      <Accordion title="Test interval adequacy">
+        Checks that the documented proof test interval for each safety function is consistent with the demand rate assumption used in the MTTFd/PFHd calculation. Flags intervals that exceed the maximum allowable value for the claimed PL.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+<Note>
+  **Chain position — cell design lane, third node.**
+  This skill consumes inputs from:
+  - [`robot-cell-layout`](/skills/robot-cell-layout) — all interlocked access points and light curtain locations
+  - [`eoat-spec`](/skills/eoat-spec) — safety-relevant gripper sensor signals
+
+  Its xlsx output is consumed by:
+  - [`interlock-estop-architecture`](/skills/interlock-estop-architecture) — E-stop network and interlock chain design
+</Note>
+
+## Standards reference
+
+**ISO 13849-1:2023** — *Safety of machinery — Safety-related parts of control systems — Part 1: General principles for design*
+
+Defines Categories B through 4, PLa–PLe, and the MTTFd/DCavg/CCF methodology used in the PL/SIL assignment tab.
+
+**IEC 62061:2021** — *Safety of machinery — Functional safety of safety-related control systems*
+
+<Info>
+  ISO 13849-1 and IEC 62061 are harmonized for machinery safety functional safety. Either standard may be used; however, they use different metrics (PL vs. SIL and MTTFd vs. PFHd). The matrix supports both by including columns for PL and SIL, with the active column determined by the standard chosen in the upstream PLr/SIL determination skill.
+</Info>
+
+## F-DI / F-DO category selection guide
+
+| Category | Architecture | Fault tolerance | Typical application |
+|---|---|---|---|
+| Cat B | Single channel, basic | 0 — single fault causes loss of function | Low-risk auxiliary signals only |
+| Cat 1 | Single channel, well-tried components | 0 — but uses proven parts | PLc max with well-tried components |
+| Cat 2 | Single channel + periodic test | 0 — fault detected at next test | PLc/PLd where demand rate is low |
+| Cat 3 | Dual channel, fault detection | 1 — single fault does not cause loss | PLd/PLe, standard E-stop and gate |
+| Cat 4 | Dual channel, fault detection + accumulation check | 1 — single fault detected before next demand | PLe, highest-risk safety functions |
+
+<Warning>
+  Category 3 and Category 4 both require dual-channel F-DI wiring and cross-monitoring at the safety controller or relay. Category 4 additionally requires that an accumulation of faults cannot cause a loss of the safety function — achieved by using redundant channels with different hardware or firmware to avoid common-cause failures (CCF).
+</Warning>

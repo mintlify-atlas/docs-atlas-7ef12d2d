@@ -1,0 +1,125 @@
+---
+title: "ISO 10218-1/-2:2025 compliance matrix builder and reviewer"
+description: "Build a clause-by-clause ISO 10218-1/-2:2025 compliance matrix with compliance status, evidence references, and gap notes for industrial robot installations."
+---
+
+The ISO 10218 compliance matrix skill pair produces a comprehensive, clause-by-clause evaluation of a robot installation against the two-part international standard for industrial robot safety: ISO 10218-1:2025 (requirements for the industrial robot — the robot manufacturer's obligations) and ISO 10218-2:2025 (requirements for the robot system and integration — the integrator's obligations). The builder ingests the robot cell scope definition and the ISO 12100 risk assessment to populate each clause row with a compliance status (compliant, non-compliant, not applicable, or open/pending), an evidence reference pointing to a drawing, test record, or document, and a gap note for any clause that cannot yet be closed. The resulting matrix is the primary compliance evidence document consumed by the declaration of conformity skill.
+
+<Note>
+**Chain position:** Consumes outputs of [`robot-cell-scope`](/skills/robot-cell-scope) and [`iso12100-risk-assessment`](/skills/iso12100-risk-assessment). Its output feeds into:
+- [`declaration-of-conformity`](/skills/declaration-of-conformity)
+</Note>
+
+## Trigger phrase
+
+```text
+Build an ISO 10218 compliance matrix for [robot installation]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder produces a clause-by-clause compliance matrix workbook covering the full normative content of both parts of ISO 10218:2025, pre-populated with evidence references drawn from upstream skill outputs.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="ISO 10218-1 matrix" icon="robot">
+        Clause-by-clause evaluation of Part 1 (robot manufacturer) requirements covering mechanical design, electrical design, control systems, user interface, and information for use — typically assessed against the robot's Declaration of Incorporation or technical file.
+      </Card>
+      <Card title="ISO 10218-2 matrix" icon="wrench">
+        Clause-by-clause evaluation of Part 2 (integrator) requirements covering risk assessment, installation, safeguarding, control system integration, collaborative operation, commissioning, and information for use.
+      </Card>
+      <Card title="Gap register" icon="triangle-exclamation">
+        Consolidated list of all non-compliant and open/pending clauses with gap description, root cause classification, corrective action required, and responsible person.
+      </Card>
+      <Card title="Evidence register" icon="file-lines">
+        Master list of all evidence documents referenced in the matrix, with document number, revision, and current status (available / in draft / missing).
+      </Card>
+    </CardGroup>
+
+    ### Part coverage
+
+    <AccordionGroup>
+      <Accordion title="ISO 10218-1 — Robot design clauses">
+        Covers mechanical design requirements (§4), electrical and electronic equipment (§5), control system requirements (§6), user interface and pendant (§7), information for use (§8) — assessed against the robot manufacturer's technical file. Typically marked as compliant based on the robot's Declaration of Incorporation from the manufacturer.
+      </Accordion>
+      <Accordion title="ISO 10218-2 — Integration clauses">
+        Covers risk assessment (§4), mechanical installation (§5), control system integration (§6), safeguarding (§7), collaborative robot applications (§8), commissioning and functional testing (§9), information for use (§10). Each clause is evaluated against integrator-produced evidence.
+      </Accordion>
+    </AccordionGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Import cell scope and risk assessment">
+        Read robot type, zone definitions, safeguarding strategy, and hazard/risk data from upstream skill outputs.
+      </Step>
+      <Step title="Pre-populate Part 1 matrix">
+        Populate ISO 10218-1 clause rows with compliance status based on the robot manufacturer's Declaration of Incorporation. Flag clauses that require integrator verification (e.g., pendant requirements if the integrator supplies a custom HMI).
+      </Step>
+      <Step title="Evaluate Part 2 clauses">
+        For each ISO 10218-2 clause, assign a compliance status based on the cell scope and risk assessment data. Populate the evidence reference column with document IDs from the cell scope and lifecycle plan registers.
+      </Step>
+      <Step title="Build gap register">
+        Collect all non-compliant and open/pending clause rows into the gap register. Assign root cause classification (design gap, missing documentation, pending test) and responsible person.
+      </Step>
+      <Step title="Produce evidence register">
+        Compile all evidence document references into the evidence register and flag any referenced document that is not yet available.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer verifies that clause coverage is complete, that evidence references are traceable to real documents, and that all gaps are captured in the gap register.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="Compliance status KPIs" icon="gauge-high">
+        Total clauses evaluated, count compliant, non-compliant, not applicable, and open/pending — separately for Part 1 and Part 2.
+      </Card>
+      <Card title="Compliance coverage bar" icon="chart-bar">
+        Stacked bar chart of clause compliance status by section (§4 through §10 of Part 2), showing the distribution of compliant vs. open items per section.
+      </Card>
+      <Card title="Evidence availability" icon="file-circle-check">
+        Count of evidence references pointing to available vs. draft vs. missing documents, flagging any clause whose only evidence is a missing document.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings with clause number, finding type (missing evidence, incorrect status, gap not in register), and recommended action.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="Clause coverage completeness">
+        Verifies that every normative clause of ISO 10218-1 and ISO 10218-2:2025 is present in the matrix with a status entry. Flags any clause row left blank or marked "TBD" without a target date.
+      </Accordion>
+      <Accordion title="Evidence traceability">
+        Confirms that every clause marked compliant has at least one evidence reference, that evidence document IDs match entries in the evidence register, and that the evidence register status is "available" for all compliance-critical documents.
+      </Accordion>
+      <Accordion title="Gap identification">
+        Checks that all non-compliant and open/pending clause rows have a corresponding entry in the gap register, and that the gap register entry includes a corrective action and responsible person.
+      </Accordion>
+    </AccordionGroup>
+
+    <Tip>
+      Run the reviewer after every significant design change. The compliance status of safeguarding clauses (ISO 10218-2 §7) is sensitive to changes in the robot cell scope — a change to zone boundaries or safeguarding device selection may flip previously compliant clauses to open/pending.
+    </Tip>
+  </Tab>
+</Tabs>
+
+## Standards and clause coverage
+
+| Standard | Scope |
+|---|---|
+| ISO 10218-1:2025 | Industrial robot — design and construction (manufacturer's obligations) |
+| ISO 10218-2:2025 | Robot system and integration (integrator's obligations) |
+| ISO 12100:2010 | Referenced by ISO 10218-2 §4 for risk assessment methodology |
+| ISO 13849-1:2023 | Referenced for safety control system requirements (ISO 10218-2 §6) |
+| IEC 62061:2021 | Alternative standard for safety control system requirements |
+
+<Info>
+ISO 10218:2025 supersedes the 2011 edition. If your installation was designed to the 2011 edition, use the transition annex in the 2025 standard to identify changed clauses. The builder generates a 2025-edition matrix by default; contact your certification body if the 2011 edition applies to your market.
+</Info>

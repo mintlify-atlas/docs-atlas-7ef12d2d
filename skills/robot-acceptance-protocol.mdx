@@ -1,0 +1,126 @@
+---
+title: "FAT and SAT acceptance protocol builder and reviewer"
+description: "Generate a combined FAT and SAT protocol with test cases, acceptance criteria, customer signoff sheets, and punch list for robot system commissioning."
+---
+
+The robot acceptance protocol skill pair produces a combined Factory Acceptance Test (FAT) and Site Acceptance Test (SAT) protocol in a single audit-ready xlsx workbook. The FAT is executed at the integrator's facility before the system is shipped to the customer; the SAT is executed at the customer's site after installation and commissioning are complete. The builder draws on ISO 9283:1998 performance targets from the upstream performance test plan, adds test cases specific to ISO 10218-2 integration requirements, and generates customer-ready signoff sheets and a structured punch list for tracking open items through to close-out. Every acceptance criterion is stated as a measurable pass/fail condition linked to the specific test procedure used to evaluate it.
+
+<Note>
+**Chain position:** This skill consumes output from:
+- [`iso9283-performance-test`](/skills/iso9283-performance-test) — performance targets used as acceptance criteria
+
+Its output feeds into:
+- [`robot-hil-test-catalog`](/skills/robot-hil-test-catalog) — HIL safety function tests that complement FAT coverage
+- [`robot-field-acceptance`](/skills/robot-field-acceptance) — OEE-based on-site acceptance after SAT sign-off
+</Note>
+
+## Trigger phrase
+
+```text
+Create a FAT/SAT acceptance protocol for [robot system]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder produces a multi-tab xlsx workbook styled in NAVY/Calibri. FAT and SAT sections are clearly separated with distinct header colors so the customer can track which tests occur at which location.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="FAT test cases" icon="flask">
+        Test cases executed at the integrator's facility: functional operation, safety function verification, I/O checkout, speed and force measurements, and ISO 9283 performance confirmation.
+      </Card>
+      <Card title="SAT test cases" icon="building">
+        Test cases executed at the customer's site after installation: leveling and anchoring verification, utilities checkout, communication interface tests, and site-specific functional cycles.
+      </Card>
+      <Card title="Acceptance criteria matrix" icon="circle-check">
+        Measurable pass/fail criteria for each test case, referencing the specific ISO 9283 performance limits, safety function response times, and customer-specified cycle parameters.
+      </Card>
+      <Card title="Measurement procedures" icon="ruler">
+        Step-by-step procedure for each test: equipment required, setup instructions, data capture format, and reference to the applicable standard clause.
+      </Card>
+      <Card title="Customer signoff sheets" icon="signature">
+        Per-phase signoff sheets with customer representative name, role, date, and signature fields for FAT completion and SAT completion milestones.
+      </Card>
+      <Card title="Punch list" icon="list-check">
+        Structured punch list for tracking items that are found non-conforming at FAT or SAT: item ID, description, responsible party, target close date, and close-out evidence reference.
+      </Card>
+    </CardGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Ingest performance test plan">
+        Read the upstream ISO 9283 performance test workbook to extract AP, RP, AT, RT, AV, and AD acceptance limits for use as measurable FAT criteria.
+      </Step>
+      <Step title="Generate FAT test case list">
+        Produce the full FAT test case list covering functional operation, safety function verification, I/O checkout, communication tests, and performance confirmation at rated payload and speed.
+      </Step>
+      <Step title="Generate SAT test case list">
+        Produce the site-specific SAT test case list covering installation verification, utility connections, grounding, robot-to-PLC communication, and customer process cycle validation.
+      </Step>
+      <Step title="Define acceptance criteria">
+        For each test case, state the measurable pass/fail criterion, the measurement method, and the relevant clause of ISO 9283:1998 or ISO 10218-2 that provides the requirement basis.
+      </Step>
+      <Step title="Format signoff and punch list sheets">
+        Generate the customer signoff sheets with pre-populated test phase names and blank signature rows, and initialise the punch list with an empty template ready for field entries.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill consumes the builder's xlsx output without modifying it. It checks coverage completeness, criterion measurability, and signoff procedure adequacy, then produces a visual dashboard.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="KPI tiles" icon="gauge-high">
+        Total test cases (FAT + SAT split), percentage with measurable criteria, open punch list items count, and signoff sheet completeness flag.
+      </Card>
+      <Card title="FAT vs SAT coverage chart" icon="chart-bar">
+        Stacked bar showing test case distribution across functional, safety, I/O, communication, and performance categories for both FAT and SAT phases.
+      </Card>
+      <Card title="Criteria measurability panel" icon="ruler">
+        Rating of each acceptance criterion on whether it is quantitative and unambiguous, with flags on any criterion that uses subjective language such as "satisfactory" or "acceptable."
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings listing test case ID, finding type (missing criterion / ambiguous criterion / missing procedure / signoff gap), and recommended corrective action.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="FAT and SAT coverage completeness">
+        Verifies that both FAT and SAT phases contain test cases in every required category (functional, safety, I/O, communication, performance) and that no category is entirely absent from either phase.
+      </Accordion>
+      <Accordion title="Acceptance criteria measurability">
+        Checks that every acceptance criterion states a specific numeric limit or a binary state (pass/fail with defined decision rule), and flags any criterion that cannot be objectively evaluated by a third party.
+      </Accordion>
+      <Accordion title="Measurement procedure completeness">
+        Confirms that each test case references a step-by-step procedure, identifies the required measurement equipment, and cites the applicable standard clause.
+      </Accordion>
+      <Accordion title="Customer signoff procedure">
+        Validates that signoff sheets identify the customer representative role, that both FAT and SAT milestones have independent signoff sheets, and that the punch list close-out process is documented.
+      </Accordion>
+    </AccordionGroup>
+
+    <Warning>
+      Any test case with a missing or subjective acceptance criterion will appear as a critical finding. Downstream skills — particularly the field acceptance reviewer — will flag unresolved punch list items as blocking items for OEE-based acceptance.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Standards and clause coverage
+
+| Standard | Clause | Topic |
+|---|---|---|
+| ISO 9283:1998 | §6.1–§6.10 | Performance metric acceptance limits |
+| ISO 10218-2:2011 | §5.4 | Verification and validation requirements |
+| ISO 10218-2:2011 | §5.10 | Commissioning and handover |
+| ISO 10218-2:2011 | Annex B | Installation verification checklist |
+
+<Tip>
+Run the FAT immediately before system shipment and keep the punch list open until all items are closed at SAT. Shipping a system with open FAT punch list items significantly increases SAT duration and customer change-order risk.
+</Tip>

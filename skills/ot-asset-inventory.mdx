@@ -1,0 +1,70 @@
+---
+title: "IEC 62443 OT asset inventory builder and reviewer skill"
+description: "Generate an IACS asset register with firmware versions, patch status, communication interfaces, zone assignments, and criticality ratings per IEC 62443-2-1."
+---
+
+The `ot-asset-inventory-builder` produces a comprehensive Industrial Automation and Control Systems (IACS) asset register for an OT environment. It captures device identification, firmware versions, patch status (current/outdated/end-of-life), communication interfaces and protocols, zone assignment (from the risk assessment), and criticality ratings. It consumes the IEC 62443 risk assessment and feeds directly into the zone & conduit plan.
+
+<Note>
+**Chain position:** Consumes `iec62443-risk-assessment-builder` output. Feeds into `zone-conduit-plan-builder`.
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Build an OT asset inventory for [facility/OT network description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | Asset Register | Asset ID, name, type, manufacturer, model, serial number, location |
+    | Firmware & Patch | Firmware version, release date, latest available, patch status, EOL date |
+    | Communication Interfaces | Asset, interface type, protocol, port/address, direction (inbound/outbound) |
+    | Zone Assignment | Asset, assigned zone (from risk assessment), security level |
+    | Criticality | Asset, safety criticality, operational criticality, data criticality, composite rating |
+    | Maintenance | Last inspection date, next scheduled maintenance, responsible team |
+
+    **Asset types in a typical robotics OT environment:**
+
+    | Asset type | Examples |
+    |-----------|---------|
+    | Robot controllers | FANUC R-30iB, KUKA KRC5, UR e-Series controller |
+    | Safety PLCs | Pilz PSS 4000, Siemens S7-1500F, Allen-Bradley GuardLogix |
+    | Industrial switches | Cisco IE, Hirschmann RS, Moxa EDS |
+    | SCADA/HMI | Ignition, FactoryTalk, WinCC |
+    | AMR fleet manager | MiR Fleet, Fetch Autonomy, VDA 5050 broker |
+    | Engineering workstations | Programming PCs, commissioning laptops |
+
+    <Warning>
+      Assets with EOL firmware have no available security patches. Flag these for immediate remediation or network isolation in the zone & conduit plan.
+    </Warning>
+  </Tab>
+  <Tab title="Reviewer">
+    The `ot-asset-inventory-checklist-reviewer` validates the asset register for completeness and patch status currency.
+
+    **Dashboard components:**
+    - KPI tiles: total asset count, EOL asset count, outdated firmware count, zone assignment completeness %
+    - Compliance bar: IEC 62443-2-1 asset management coverage
+    - Findings table: undocumented assets, EOL firmware items, missing zone assignments
+
+    **Checks performed:**
+    - All assets identified in risk assessment scope are present in the register
+    - Firmware version documented for every asset
+    - Patch status assessed (current / outdated / EOL) for all assets
+    - EOL assets flagged with remediation action (isolate / replace / compensating control)
+    - Communication interfaces documented with protocol and port
+    - Zone assignment consistent with risk assessment SL-T
+    - Criticality rating justification provided for high-criticality assets
+  </Tab>
+</Tabs>
+
+## Standards coverage
+
+| Standard | Relevance |
+|----------|-----------|
+| IEC 62443-2-1 | Asset management and security management system |
+| IEC 62443-3-2 | Asset scoping for risk assessment |
+| IEC 62443-2-4 | Requirements for IACS service providers (patch management) |

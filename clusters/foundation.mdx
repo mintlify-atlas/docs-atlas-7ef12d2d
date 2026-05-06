@@ -1,0 +1,111 @@
+---
+title: "Foundation skills: ISO 12100, lifecycle, and cell scope"
+description: "3 foundation skill pairs — ISO 12100 risk assessment, safety lifecycle plan, robot cell scope — anchoring all downstream PLr, SIL, and CE marking work."
+---
+
+The foundation cluster is the mandatory entry point for every robotics lifecycle documentation chain. Before any performance requirement, compliance matrix, or Declaration of Conformity can be written, three structured artifacts must exist: an ISO 12100 hazard workbook that quantifies every risk in the cell, a machinery safety lifecycle plan that establishes phase gates and responsibility assignments, and a robot cell scope document that fixes the physical and functional boundaries of the installation. Every downstream skill in the suite — PLr determination, SIL calculation, compliance matrix, CE marking — consumes one or more of these three workbooks as its upstream input. Getting the foundation artifacts right is therefore a prerequisite for everything that follows.
+
+## How the foundation feeds the chain
+
+<Steps>
+  <Step title="Run the ISO 12100 risk assessment">
+    The `iso12100-risk-assessment-builder` skill produces a multi-tab xlsx workbook covering hazard identification, risk estimation (severity × probability × avoidability), and risk reduction measures for every hazard in the cell. This workbook is the primary input consumed by the PLr and SIL determination skills downstream.
+  </Step>
+  <Step title="Generate the machinery safety lifecycle plan">
+    The `machinery-safety-lifecycle-plan-builder` skill reads the risk assessment output and produces a phase-gated lifecycle plan aligned to ISO 13849-1 and IEC 62061. Each phase gate records the owner, target date, acceptance criteria, and sign-off status — creating an audit trail from design through decommissioning.
+  </Step>
+  <Step title="Define the robot cell scope">
+    The `robot-cell-scope-builder` skill produces a structured scope definition covering robot type, payload, reach envelope, mounting configuration, and the safeguarding strategy. The scope document anchors every cell-specific artifact that follows in the compliance and cell design clusters.
+  </Step>
+  <Step title="Pass artifacts to downstream clusters">
+    The xlsx workbooks produced in steps 1–3 are passed directly to the compliance and integrity cluster. The ISO 13849-1 PLr and IEC 62061 SIL builder skills read the risk estimation values and safety function descriptions from the foundation workbooks — no manual re-entry required.
+  </Step>
+</Steps>
+
+## Skill pairs
+
+<CardGroup cols={2}>
+  <Card title="ISO 12100 risk assessment" icon="triangle-exclamation" href="/skills/iso12100-risk-assessment">
+    **Standard:** ISO 12100:2010
+
+    Builder produces a full hazard identification, risk estimation, and risk reduction workbook. Reviewer confirms clause-by-clause coverage against ISO 12100 and issues a visual dashboard with KPI tiles and findings table.
+  </Card>
+  <Card title="Machinery safety lifecycle plan" icon="diagram-project" href="/skills/machinery-safety-lifecycle-plan">
+    **Standards:** ISO 13849-1:2023, IEC 62061:2021
+
+    Builder produces a phase-gated lifecycle plan with owner assignments and acceptance criteria per phase. Reviewer validates phase gate completeness and generates a stacked rating breakdown by lifecycle phase.
+  </Card>
+  <Card title="Robot cell scope" icon="border-all" href="/skills/robot-cell-scope">
+    **Standards:** ISO 10218-2:2025, ANSI/RIA R15.06-2012 R2017
+
+    Builder produces the cell scope definition: robot type, payload, reach, mounting configuration, collaborative vs. industrial mode, and the top-level safeguarding strategy. Reviewer checks conformance to ISO 10218-2 and R15.06 scoping requirements.
+  </Card>
+  <Card title="Review your foundation artifacts" icon="circle-check" href="/clusters/compliance-integrity">
+    Once all three builder skills have run, pass their xlsx outputs to the compliance and integrity cluster to begin PLr/SIL determination and compliance matrix generation.
+  </Card>
+</CardGroup>
+
+## Skill reference: what each builder produces
+
+<AccordionGroup>
+  <Accordion title="iso12100-risk-assessment-builder — xlsx output detail" icon="file-excel">
+    The risk assessment workbook contains five tabs:
+
+    - **Hazard Register** — one row per identified hazard with machine element, hazardous situation, possible harm, and affected persons
+    - **Risk Estimation** — severity (S1/S2), probability of occurrence (O1/O2/O3), and avoidability (A1/A2) per hazard; risk level derived per ISO 12100 Annex A
+    - **Risk Reduction Measures** — inherently safe design, safeguarding measures, and information for use, each with residual risk level after measure
+    - **Safety Function Register** — safety functions identified from risk reduction measures, each tagged with required PLr or SIL for handoff to the compliance cluster
+    - **Review Dashboard** — KPI tiles (hazard count, % reduced to acceptable risk, open items), pie chart by risk level, findings table
+
+    ```text
+    Trigger phrase: "Run an ISO 12100 risk assessment on [cell description]"
+    Output: iso12100-risk-assessment.xlsx
+    Feeds into: iso13849-plr-builder, iec62061-sil-builder
+    ```
+  </Accordion>
+  <Accordion title="machinery-safety-lifecycle-plan-builder — xlsx output detail" icon="file-excel">
+    The lifecycle plan workbook contains four tabs:
+
+    - **Lifecycle Phases** — design, implementation, commissioning, operation, maintenance, modification, decommissioning; each phase with owner, start/end target dates, and gate criteria
+    - **Phase Gate Checklist** — per-gate acceptance criteria derived from ISO 13849-1 clause 4 and IEC 62061 clause 5, with pass/fail status
+    - **Responsibility Matrix** — RACI assignments for each phase gate activity
+    - **Review Dashboard** — % gates passed, open actions by phase, findings table
+
+    ```text
+    Trigger phrase: "Generate a machinery safety lifecycle plan for [project name]"
+    Output: machinery-safety-lifecycle-plan.xlsx
+    Feeds into: iso13849-plr-builder, iec62061-sil-builder
+    ```
+  </Accordion>
+  <Accordion title="robot-cell-scope-builder — xlsx output detail" icon="file-excel">
+    The cell scope workbook contains three tabs:
+
+    - **Cell Scope** — robot manufacturer, model, type (6-axis, SCARA, cobot, gantry), payload (kg), reach (mm), mounting, IP rating, operating mode (collaborative / industrial restricted / industrial full-speed)
+    - **Safeguarding Strategy** — top-level safeguarding selection: fixed guards, interlocked guards, presence-sensing devices, speed and separation monitoring, power and force limiting; each with applicable standard reference
+    - **Review Dashboard** — coverage against ISO 10218-2:2025 clause 5 and ANSI R15.06 clause 4 scope requirements, findings table
+
+    ```text
+    Trigger phrase: "Define the robot cell scope for [cell description]"
+    Output: robot-cell-scope.xlsx
+    Feeds into: iso10218-compliance-matrix-builder, ansi-r1506-compliance-matrix-builder
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Standards targeted
+
+| Standard | Scope |
+|---|---|
+| ISO 12100:2010 | General principles for design — risk assessment and risk reduction |
+| ISO 13849-1:2023 | Safety of machinery — safety-related parts of control systems, PLr |
+| IEC 62061:2021 | Functional safety of safety-related control systems, SIL |
+| ISO 10218-2:2025 | Robots and robotic devices — safety requirements for integration |
+| ANSI/RIA R15.06-2012 R2017 | North American safety requirements for industrial robots |
+
+<Note>
+  The ISO 12100 risk assessment workbook is the single source of truth for severity, probability, and avoidability values used by every downstream skill. If you update a hazard estimate, re-run the PLr, SIL, and compliance matrix builders to propagate the change automatically.
+</Note>
+
+<Tip>
+  Run the foundation reviewer skills immediately after each builder. Catching gaps in hazard coverage or missing scope fields before passing artifacts downstream avoids rework in the compliance and integrity cluster.
+</Tip>

@@ -1,0 +1,144 @@
+---
+title: "Cobot hand-guiding device spec builder and reviewer"
+description: "Specify cobot hand-guiding hardware: 3-position enabling switch, guiding speed limits, force sensing thresholds, and activation logic per ISO/TS 15066 HG mode."
+---
+
+The cobot hand-guiding device specification builder produces a structured xlsx workbook defining all hardware and functional requirements for a hand-guiding device that enables an operator to directly guide a cobot through programmed or collaborative paths. Hand-guiding (HG) is the fourth collaborative operation mode defined in ISO/TS 15066:2016, and it requires a specific enabling device design — typically a 3-position enabling switch — along with guiding speed limits, force sensing thresholds, and activation logic that prevents unintended robot motion.
+
+<Tabs>
+  <Tab title="Builder">
+    The builder skill ingests the upstream biomechanical limits xlsx, the cobot model specification, and the intended hand-guiding use case, then produces a complete HG device specification workbook.
+
+    **Trigger phrase**
+
+    ```text
+    Specify hand-guiding for [cobot application]
+    ```
+
+    **Workbook tabs**
+
+    <Steps>
+      <Step title="Enabling Switch Specification">
+        3-position enabling switch functional requirements: physical design, grip geometry, switch travel, contact rating, and SIL/PLr target for the enabling function.
+      </Step>
+      <Step title="Guiding Speed Limit">
+        Maximum permitted guiding speed setting, justification relative to the ISO/TS 15066 default of ≤250 mm/s (TCP), and any application-specific reduction with supporting risk assessment reference.
+      </Step>
+      <Step title="Force Sensing Threshold">
+        Force/torque sensing threshold configuration at the hand-guiding handle, with deadband settings, direction sensitivity, and relationship to the upstream biomechanical limits.
+      </Step>
+      <Step title="Activation Logic">
+        State machine for HG mode activation, deactivation, and fault response, including interlock conditions and transition to safe standstill.
+      </Step>
+      <Step title="Interface Drawing">
+        Dimensional sketch or reference drawing of the hand-guiding handle assembly with enabling switch position, force sensor integration point, and cable management.
+      </Step>
+    </Steps>
+
+    **3-position enabling switch design**
+
+    The enabling switch is the primary safety control element for hand-guiding. ISO/TS 15066 and IEC 60947-5-8 define the three-position requirement:
+
+    <CardGroup cols={2}>
+      <Card title="Position 1 — Inactive" icon="circle-xmark">
+        Switch at rest (not pressed). Robot motion is inhibited. Transition from Position 1 to Position 2 requires a deliberate grip action by the operator.
+      </Card>
+      <Card title="Position 2 — Enabled" icon="circle-check">
+        Switch pressed to mid-travel (normal operating grip). Hand-guiding motion is enabled. Robot follows the operator's applied force within the guiding speed limit.
+      </Card>
+      <Card title="Position 3 — Panic" icon="circle-exclamation">
+        Switch pressed through to full travel (panic grip, beyond normal range). Robot motion is immediately inhibited — equivalent to a safe stop. Prevents freeze-response from amplifying contact force.
+      </Card>
+      <Card title="Transition monitoring" icon="arrows-left-right">
+        The safety controller must monitor transitions between all three positions and detect switch faults (stuck in Position 2, transition skip) as a safety function.
+      </Card>
+    </CardGroup>
+
+    **Guiding speed limit**
+
+    ```text
+    ISO/TS 15066:2016 default maximum guiding speed:  ≤ 250 mm/s (TCP)
+
+    Application-specific limits:
+      - Precision path teaching:           ≤ 50 mm/s
+      - General collaborative guiding:     ≤ 250 mm/s
+      - Gravity-compensated free motion:   ≤ 250 mm/s (with dynamic monitoring)
+
+    Speed limit enforcement: safety-rated speed monitor (SLS function)
+    Safety integrity:        PLd / SIL 2 minimum (per ISO 10218-2:2025)
+    ```
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill ingests the HG device specification xlsx and the upstream biomechanical limits xlsx, then produces a confirmation-measures checklist and visual dashboard.
+
+    **Dashboard components**
+
+    <CardGroup cols={2}>
+      <Card title="KPI tile: specification completeness" icon="list-check">
+        Count of required specification elements (switch, speed limit, force threshold, activation logic, drawing) present and fully documented.
+      </Card>
+      <Card title="Safety function compliance matrix" icon="shield">
+        Each safety function (enabling, SLS, safe stop) mapped to its required PLr/SIL and the cited evidence of compliance.
+      </Card>
+      <Card title="Activation logic state diagram" icon="diagram-project">
+        Rendered state machine with all transitions labelled and fault states identified.
+      </Card>
+      <Card title="Findings table" icon="triangle-exclamation">
+        Non-conformances with severity, affected specification element, and recommended corrective action.
+      </Card>
+    </CardGroup>
+
+    **Reviewer checks**
+
+    <AccordionGroup>
+      <Accordion title="Enabling switch specification compliance">
+        Verifies that the enabling switch meets the 3-position requirement per IEC 60947-5-8, that all three positions are defined in the specification, and that the switch's certified safety function rating (PLr/SIL) meets or exceeds the required level from the upstream risk assessment.
+      </Accordion>
+      <Accordion title="Speed limit enforcement">
+        Confirms that the guiding speed limit is enforced by a safety-rated Safely Limited Speed (SLS) function — not by an application program speed command — and that the SLS source references a certified safety controller function.
+      </Accordion>
+      <Accordion title="Force threshold appropriateness">
+        Checks that the force sensing threshold is calibrated relative to the biomechanical limits from the upstream xlsx and does not exceed the transient contact limits for the hand and finger regions (the primary contact regions during hand-guiding).
+      </Accordion>
+      <Accordion title="Activation logic completeness">
+        Reviews the activation state machine for coverage of all defined operating states (idle, enabled, guiding, fault, e-stop) and confirms that no transition allows robot motion without Position 2 being continuously held.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+<Note>
+  **Chain position — terminal node in the cobot lane.**
+  Upstream dependency:
+  - [`iso15066-biomechanical-limits`](/skills/iso15066-biomechanical-limits) — provides contact force thresholds for hand and finger regions used to calibrate force sensing
+
+  This skill is a terminal node; its output is not consumed by other skills in the chain. It represents the final deliverable for cobot hand-guiding mode compliance documentation.
+</Note>
+
+## Standard reference
+
+**ISO/TS 15066:2016, Section 5.6** — *Hand-guiding (HG)*
+
+Hand-guiding is defined as a mode where a human manually guides a robot that operates under power, using a hand-guiding device that includes an enabling device. The standard requires the enabling device to comply with IEC 60947-5-8 (three-position enabling devices) and the guiding speed to be limited to a safe level verified against the biomechanical data.
+
+<Info>
+  ISO 10218-2:2025 (the full industrial robot installation standard) references hand-guiding as a collaborative operation mode and requires the enabling function to be implemented as a safety function with integrity appropriate to the risk assessment outcome — typically PLd / SIL 2.
+</Info>
+
+## Enabling switch selection criteria
+
+| Criteria | Requirement | Notes |
+|---|---|---|
+| Position count | Three-position per IEC 60947-5-8 | Two-position enabling switches do not satisfy the panic-grip requirement |
+| Safety rating | PLd / SIL 2 minimum | Higher integrity may be required by site-specific risk assessment |
+| Grip geometry | Ergonomic for sustained hand-guiding | Fatigue must not cause unintentional transition to Position 3 |
+| Cable entry | IP54 minimum | Industrial environment ingress protection |
+| Certification | TÜV, UL, or equivalent | Required for machinery CE marking file |
+
+<Tip>
+  Select an enabling switch with a clearly distinguishable tactile difference between Position 2 (enabled) and Position 3 (panic), but not so large a force step that an operator in a panic response cannot naturally reach Position 3. This ergonomic balance is essential for the panic-grip function to work as intended.
+</Tip>
+
+<Warning>
+  A standard two-position deadman switch does **not** satisfy the ISO/TS 15066 / IEC 60947-5-8 three-position enabling requirement. Using a two-position switch is a critical non-conformance that will be flagged in the reviewer dashboard as a Stop-shipment finding.
+</Warning>

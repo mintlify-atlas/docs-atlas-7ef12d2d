@@ -1,0 +1,134 @@
+---
+title: "Robot cell standard operating procedure builder skill"
+description: "Write a robot cell SOP covering pre-start checks, normal operation, fault response, speed overrides, shutdown, and emergency procedures per ISO 10218-2."
+---
+
+The robot SOP builder produces a structured xlsx workbook that defines the complete standard operating procedure for a robot cell — covering the pre-start checklist, normal automatic operation sequence, fault and alarm response procedures for every classified fault code, speed override conditions and authorization requirements, the normal shutdown sequence, and emergency response steps. The SOP is the first operational document produced after the cell design lane completes, and it provides the procedural content that the LOTO procedure and operator training matrix build upon.
+
+<Tabs>
+  <Tab title="Builder">
+    The builder skill ingests the interlock and E-stop architecture xlsx and a cell description (robot model, cell ID, production part, and applicable regulatory jurisdiction) and produces a multi-tab audit-ready xlsx workbook styled in NAVY/Calibri.
+
+    **Trigger phrase**
+
+    ```text
+    Write a robot SOP for [robot cell/operation]
+    ```
+
+    **Workbook tabs**
+
+    <Steps>
+      <Step title="Pre-Start Checklist">
+        Ordered checklist of conditions that must be verified before initiating automatic operation: perimeter guard integrity, E-stop button condition (released and latched), light curtain function test result, teach pendant stored and key removed, pneumatic pressure at specification, and robot controller fault log cleared.
+      </Step>
+      <Step title="Normal Operation Sequence">
+        Step-by-step procedure for initiating and monitoring automatic operation: HMI login, production program selection, part loading confirmation, cycle start authorization, and in-cycle monitoring requirements (cycle time, reject rate, alarm acknowledgment frequency).
+      </Step>
+      <Step title="Fault and Alarm Response">
+        One row per classified fault code or alarm type: fault description, probable cause, immediate operator action, maintenance escalation trigger, and return-to-production authorization requirement. Covers robot controller faults, PLC safety faults, EOAT sensor faults, and peripheral device faults.
+      </Step>
+      <Step title="Speed Override Conditions">
+        Documented conditions under which reduced speed operation (override < 100%) is permitted: programming and verification activities (≤ 250 mm/s TCP), troubleshooting with enabling device, and production restart after fault recovery. Includes required authorization level for each override condition.
+      </Step>
+      <Step title="Shutdown Sequence">
+        Ordered shutdown procedure: complete current cycle, move robot to home position, disable auto mode, remove parts from cell, power down peripherals in sequence, and secure the cell (E-stop engaged or power isolated per end-of-shift requirement).
+      </Step>
+      <Step title="Emergency Response">
+        Actions required for: E-stop activation (do not reset until cause is identified), person in safeguarded space (evacuate, do not restart), robot fault at speed (remain outside cell boundary), and fire/spill response (use cell-specific emergency contacts and evacuation route).
+      </Step>
+    </Steps>
+
+    **SOP coverage areas**
+
+    <CardGroup cols={2}>
+      <Card title="Pre-start verification" icon="clipboard-check">
+        Physical inspection of guards, sensors, and E-stop devices before each shift. Pre-start checks are the operator's primary line of defense against hardware degradation between maintenance intervals.
+      </Card>
+      <Card title="Fault response coverage" icon="bell">
+        Per-fault-code response procedures covering the full fault taxonomy from the robot controller and safety PLC. Ensures operators have documented actions for every fault type without defaulting to ad-hoc troubleshooting.
+      </Card>
+      <Card title="Speed override authorization" icon="gauge-high">
+        Explicit conditions and authorization levels for operating below 100% speed. Prevents informal speed reduction becoming a routine workaround that bypasses the cell's designed safe operating envelope.
+      </Card>
+      <Card title="Emergency response clarity" icon="triangle-exclamation">
+        Cell-specific emergency actions distinct from generic facility procedures. References E-stop locations and egress paths documented in the cell layout to keep emergency instructions actionable.
+      </Card>
+    </CardGroup>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill ingests the builder's xlsx output and produces a confirmation-measures checklist plus a visual dashboard. It never modifies the source artifact — all gaps are recorded in a Recommended Actions table.
+
+    **Dashboard components**
+
+    <CardGroup cols={2}>
+      <Card title="KPI tile: fault coverage" icon="table-cells">
+        Count of fault codes with complete response procedures (cause, action, escalation trigger) out of the total fault codes cataloged in the robot controller and safety PLC.
+      </Card>
+      <Card title="Procedure completeness chart" icon="chart-bar">
+        Six-section completeness bar showing documentation coverage for: pre-start, normal operation, fault response, speed override, shutdown, and emergency response. Highlights any section below 100%.
+      </Card>
+      <Card title="Speed override authorization tile" icon="shield-check">
+        Count of override conditions with documented authorization levels and enabling conditions vs. total override conditions. Flags any override condition that lacks a documented authorization requirement.
+      </Card>
+      <Card title="Findings table" icon="triangle-exclamation">
+        Structured list of SOP gaps with severity, affected procedure section, and recommended corrective action referencing the source cell design document.
+      </Card>
+    </CardGroup>
+
+    **Reviewer checks**
+
+    <AccordionGroup>
+      <Accordion title="Procedure completeness">
+        Confirms that all six SOP sections (pre-start, normal operation, fault response, speed override, shutdown, emergency) contain substantive content — not placeholder rows — and that each step has an assigned responsible role (operator, technician, or supervisor).
+      </Accordion>
+      <Accordion title="Fault response coverage">
+        Cross-references the fault response tab against the robot controller's documented fault code list and the safety PLC's alarm register. Flags any fault code that appears in the controller documentation but has no corresponding SOP response row.
+      </Accordion>
+      <Accordion title="Emergency procedure clarity">
+        Verifies that the emergency response section references the actual E-stop button locations from the interlock/E-stop architecture document and the egress paths from the cell layout. Generic emergency instructions that do not reference cell-specific hardware are flagged.
+      </Accordion>
+      <Accordion title="Consistency with cell layout">
+        Checks that the pre-start checklist device list (guard locations, E-stop buttons, light curtain test points) is consistent with the device register in the cell layout and interlock/E-stop architecture documents. Flags any pre-start item referencing a device not in the cell design documents.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+<Note>
+  **Chain position — operational lane, first node.**
+  This skill consumes: [`interlock-estop-architecture`](/skills/interlock-estop-architecture) — E-stop device locations, stop categories, and reset procedures. Its xlsx output is consumed by:
+  - [`loto-procedure`](/skills/loto-procedure) — lockout/tagout procedure
+  - [`operator-training-matrix`](/skills/operator-training-matrix) — per-role training requirements
+</Note>
+
+## Standards reference
+
+**ISO 10218-2:2011 (revised 2025)** — *Robots and robotic devices — Safety requirements for industrial robots — Part 2: Robot systems and integration*
+
+Clause 5.4.3 (operator interface) and Clause 7 (information for use) establish the SOP content requirements for robot integrators.
+
+**OSHA 1910.212** — *General requirements for all machines*
+
+<Info>
+  OSHA 1910.212 applies to machine guarding in general industry. It requires that operators be protected from hazards such as ingoing nip points, rotating parts, and flying chips and sparks. The robot SOP's pre-start checklist and fault response procedures are the primary mechanism for demonstrating OSHA 1910.212 compliance at the operational level.
+</Info>
+
+## Speed override authorization table
+
+```text
+Condition                  | Max Speed Override | Required Authorization
+─────────────────────────────────────────────────────────────────────────
+Programming / path teach   | ≤ 250 mm/s TCP    | Programmer + enabling device
+Path verification          | ≤ 250 mm/s TCP    | Programmer + enabling device
+Fault troubleshooting      | ≤ 250 mm/s TCP    | Technician + enabling device
+Production restart check   | ≤ 50% speed       | Supervisor sign-off + single cycle
+Normal production          | 100% programmed   | None (operator initiates cycle)
+```
+
+<Warning>
+  OSHA and ISO 10218-2 do not permit operating a robot in automatic mode with a speed override below 100% as a routine workaround for unresolved process issues. If the cell cannot run at programmed speed, the fault must be resolved before returning to automatic production. Persistent use of speed override in production is a red flag for reviewers and auditors.
+</Warning>
+
+<Tip>
+  Include cell-specific fault codes in the SOP from day one. Generic SOPs that list only "robot fault — call maintenance" are the leading cause of operators improvising unsafe workarounds. Obtain the robot controller's fault code reference from the manufacturer and map every fault code to a documented response before the SOP is signed.
+</Tip>

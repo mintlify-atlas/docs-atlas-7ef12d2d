@@ -1,0 +1,116 @@
+---
+title: "Operational skills: SOP, LOTO, and operator training"
+description: "Cover 3 pairs: robot-sop, loto-procedure, operator-training-matrix. Explain OSHA 1910.147 LOTO compliance, SOP phases, per-role qualification tracking."
+---
+
+The operational cluster bridges safety engineering and day-to-day plant floor execution. Three builder + reviewer pairs automate the written procedures every integrator must hand over at cell commissioning: a structured standard operating procedure covering all four operating phases, a fully OSHA 1910.147-compliant lockout/tagout procedure with named energy source records, and a per-role operator qualification matrix that tracks competency levels and re-qualification intervals. Together they form the last link in the Cell + Operational lane of the skills chain, consuming the upstream safety I/O matrix and interlock architecture as inputs.
+
+<CardGroup cols={2}>
+  <Card title="robot-sop-builder" icon="file-lines" href="/skills/robot-sop">
+    Generates a pre-start checklist, normal operation steps, fault recovery procedures, and shutdown sequence in a multi-tab xlsx workbook.
+  </Card>
+  <Card title="robot-sop-reviewer" icon="circle-check" href="/skills/robot-sop">
+    Confirms SOP completeness, verifies each phase covers required safety steps, and produces a dashboard with compliance KPIs and findings.
+  </Card>
+  <Card title="loto-procedure-builder" icon="lock" href="/skills/loto-procedure">
+    Produces an OSHA 1910.147 lockout/tagout procedure with energy source identification, device assignments, and sequence verification.
+  </Card>
+  <Card title="loto-procedure-reviewer" icon="circle-check" href="/skills/loto-procedure">
+    Validates the procedure against 1910.147 requirements, flags missing device assignments, and outputs a confirmation-measures checklist.
+  </Card>
+  <Card title="operator-training-matrix-builder" icon="table" href="/skills/operator-training-matrix">
+    Builds a per-role qualification matrix with competency levels (Aware / Competent / Proficient) and configurable re-qualification intervals.
+  </Card>
+  <Card title="operator-training-matrix-reviewer" icon="circle-check" href="/skills/operator-training-matrix">
+    Audits role coverage, checks interval compliance with site policy, and delivers a visual dashboard highlighting qualification gaps.
+  </Card>
+</CardGroup>
+
+## Skill pair details
+
+### robot-sop-builder + reviewer
+
+The SOP builder structures a robot standard operating procedure across four mandatory phases. Each phase maps directly to the conditions a machine operator encounters during a production shift.
+
+<Steps>
+  <Step title="Pre-start checklist">
+    Verifies guards are in place, safety devices are functional, E-stop circuits are active, and the work envelope is clear before power-on.
+  </Step>
+  <Step title="Normal operation steps">
+    Documents the production sequence: program selection, speed/payload confirmation, cycle start authorization, and in-cycle monitoring requirements.
+  </Step>
+  <Step title="Fault recovery procedures">
+    Provides role-specific responses to each fault category — axis faults, communication loss, sensor trips, collision detection — including escalation paths.
+  </Step>
+  <Step title="Shutdown sequence">
+    Defines controlled stop (Category 1), power-down order, and state confirmation before personnel access is permitted.
+  </Step>
+</Steps>
+
+<Tip>
+  Run the SOP builder after the interlock and E-stop architecture skill completes so that safety I/O channel numbers and response times can be referenced directly in the fault recovery section.
+</Tip>
+
+---
+
+### loto-procedure-builder + reviewer
+
+The LOTO builder implements the full OSHA 1910.147 control of hazardous energy methodology. The output xlsx workbook contains one row per energy source, recording the energy type, nominal magnitude, isolation device, device location, lock type, tagout only justification (if applicable), and the sequence position in the procedure.
+
+<AccordionGroup>
+  <Accordion title="Energy source identification">
+    The builder captures all energy forms present: electrical (480 V / 24 V DC control), pneumatic (line pressure and stored pressure in cylinders), hydraulic, gravitational (suspended loads), thermal, and kinetic (stored spring energy). Each source receives a unique identifier used throughout the procedure.
+  </Accordion>
+  <Accordion title="Device assignment and verification">
+    Each energy source is linked to its isolation device — disconnect switch, ball valve, bleed valve, or cylinder block — along with the physical location description, lock hasp size, and the responsible authorized employee role.
+  </Accordion>
+  <Accordion title="Sequence and restoration steps">
+    The procedure captures the de-energization sequence (order matters when releasing stored pressure before disconnecting electrical) and the re-energization sequence with verification steps before personnel clear the zone.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  OSHA 1910.147 requires that each authorized employee apply their own personal lock to every energy isolation device. The LOTO procedure builder records device count so the reviewer can flag any hasp-capacity shortfalls against headcount.
+</Warning>
+
+---
+
+### operator-training-matrix-builder + reviewer
+
+The training matrix builder produces a qualification table indexed by role and skill domain. Competency is tracked at three levels, and re-qualification intervals are configurable per site policy or regulatory requirement.
+
+| Role | Competency level | Re-qualification interval |
+|------|-----------------|--------------------------|
+| Machine operator | Aware → Competent | 12 months |
+| Setup technician | Competent → Proficient | 24 months |
+| Maintenance engineer | Proficient | 24 months |
+| Safety supervisor | Proficient | 12 months |
+
+<Note>
+  The training matrix consumes role definitions from the robot cell scope skill. If roles change upstream, re-run the training matrix builder to keep qualification records consistent with the current cell configuration.
+</Note>
+
+## Compliance reference
+
+<AccordionGroup>
+  <Accordion title="OSHA 1910.147 — Control of Hazardous Energy">
+    Covers lockout/tagout requirements for the control of hazardous energy during servicing and maintenance of machines and equipment. Key provisions: written program, machine-specific procedures, authorized and affected employee training, periodic inspections, and hardware (locks and tags) requirements.
+  </Accordion>
+  <Accordion title="OSHA 1910.212 — General machine guarding">
+    Applies to point-of-operation guarding and applies alongside 1910.147 for robot cell SOPs. The SOP builder references required guard types from the upstream safety I/O matrix.
+  </Accordion>
+  <Accordion title="ISO 10218-2:2025 — Robot system integration">
+    Section 5.4 (Information for use) requires the integrator to supply operating instructions for every operating mode: automatic, manual reduced speed, and maintenance. The SOP builder structures output to satisfy this requirement.
+  </Accordion>
+</AccordionGroup>
+
+## Chain position
+
+The operational cluster sits at the end of the Cell + Operational lane:
+
+```text
+Cell Layout → EOAT Spec → Safety I/O Matrix → Interlock + E-Stop Architecture
+                                                  → SOP → LOTO → Operator Training
+```
+
+Each skill in this lane consumes the upstream artifact as a stable xlsx input. Running the LOTO builder before the safety I/O matrix is complete will produce an incomplete energy source list — always follow the chain order.

@@ -1,0 +1,125 @@
+---
+title: "ISO 12100:2010 risk assessment builder and reviewer"
+description: "Generate and review a multi-tab ISO 12100:2010 risk assessment workbook covering hazard identification, risk estimation, reduction measures, and residual risk."
+---
+
+The ISO 12100 risk assessment skill pair produces a structured, audit-ready xlsx workbook that systematically identifies hazards across the full machinery lifecycle, estimates risk using a severity × probability × avoidability matrix, documents risk reduction measures applied at each level of the hierarchy (inherently safe design, safeguarding, information for use), and records the justified residual risk for each hazard. It targets ISO 12100:2010 — Safety of machinery — General principles for design — and serves as the mandatory entry point for the compliance chain: every downstream skill (machinery safety lifecycle plan, PLr/SIL determination, compliance matrix) consumes this workbook's stable xlsx contract.
+
+<Note>
+**Chain position:** This is the entry point of the compliance chain. Its output feeds into:
+- [`machinery-safety-lifecycle-plan`](/skills/machinery-safety-lifecycle-plan) — lifecycle phase planning
+- [`iso13849-plr`](/skills/iso13849-plr) — required PL determination
+- [`iec62061-sil`](/skills/iec62061-sil) — SIL determination (parallel path)
+- [`iso10218-compliance-matrix`](/skills/iso10218-compliance-matrix) — robot integration compliance
+</Note>
+
+## Trigger phrase
+
+```text
+Run an ISO 12100 risk assessment on [machine/cell description]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder produces a multi-tab xlsx workbook styled in NAVY/Calibri with PLr/SIL color coding. Each tab captures a distinct phase of the ISO 12100 risk assessment process.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="Hazard identification" icon="triangle-exclamation">
+        Full lifecycle hazard list (design, transport, commissioning, operation, maintenance, decommissioning) with hazard type, location, and affected personnel.
+      </Card>
+      <Card title="Risk estimation" icon="chart-bar">
+        Severity (S1/S2), probability of occurrence (O1–O3), and avoidance/limitation (A1/A2) parameters per hazard, producing the initial risk level.
+      </Card>
+      <Card title="Risk reduction measures" icon="shield-halved">
+        Three-step hierarchy: inherently safe design measures, safeguarding and protective devices, and information for use — each mapped to the source hazard row.
+      </Card>
+      <Card title="Residual risk summary" icon="circle-check">
+        Post-reduction risk level per hazard, justification for acceptance, and signatory for each residual risk decision.
+      </Card>
+    </CardGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Receive machine/cell description">
+        Parse the trigger phrase to extract machine type, operational modes, task descriptions, and personnel categories (operators, maintenance, bystanders).
+      </Step>
+      <Step title="Enumerate hazards">
+        Apply ISO 12100 Annex B taxonomy to generate a complete hazard list covering mechanical, electrical, thermal, noise, vibration, radiation, material/substance, ergonomic, and environment hazard groups.
+      </Step>
+      <Step title="Estimate initial risk">
+        Populate the S × O × A risk matrix for each hazard, computing the initial risk level (low / medium / high) before any reduction measures.
+      </Step>
+      <Step title="Apply risk reduction hierarchy">
+        Document measures at each hierarchy level and cross-reference to safeguarding devices, PL/SIL targets, and information-for-use items.
+      </Step>
+      <Step title="Record residual risk">
+        For each hazard, record the post-measure risk level and enter a justification statement. Flag any residual risk rated medium or high for mandatory reviewer attention.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill consumes the builder's xlsx output without modifying it. It runs a confirmation-measures checklist and produces a visual dashboard report.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="KPI tiles" icon="gauge-high">
+        Total hazards identified, percentage fully mitigated, open medium/high residual risks, and missing justifications count.
+      </Card>
+      <Card title="Risk distribution chart" icon="pie-chart">
+        Pie chart of initial vs. residual risk levels (low / medium / high) showing the risk reduction achieved across the assessment.
+      </Card>
+      <Card title="Hierarchy coverage bar" icon="bars-progress">
+        Stacked bar showing how many hazards received measures at each level: inherently safe design, safeguarding, and information for use.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings listing hazard ID, finding type (gap / inconsistency / missing justification), and recommended action. Reviewers never modify the source artifact.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="Completeness of hazard list">
+        Verifies that all lifecycle phases from ISO 12100 §5.4 are represented and that each ISO 12100 Annex B hazard group has at least one entry or an explicit "not applicable" justification.
+      </Accordion>
+      <Accordion title="Risk matrix correctness">
+        Confirms that S, O, and A parameter values are consistent with the ISO 12100 definitions and that the computed initial risk level matches the parameter combination.
+      </Accordion>
+      <Accordion title="Reduction measure adequacy">
+        Checks that measures at each hierarchy level are specific and traceable, that safety function references include a PL/SIL target, and that information-for-use items are linked to operator documentation.
+      </Accordion>
+      <Accordion title="Residual risk justification">
+        Validates that every hazard with a non-low residual risk carries a written justification, an identified responsible person, and a reference to the evidence used to accept the risk.
+      </Accordion>
+    </AccordionGroup>
+
+    <Warning>
+      Any hazard with a high residual risk and no justification will appear as a critical finding. The downstream machinery safety lifecycle plan skill will flag the unresolved item in its phase gate checklist.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Standards and clause coverage
+
+| ISO 12100:2010 clause | Topic |
+|---|---|
+| §4 | Strategy for risk assessment and risk reduction |
+| §5.2 | Limits of the machinery |
+| §5.3 | Hazard identification |
+| §5.4 | Risk estimation |
+| §5.5 | Risk evaluation |
+| §6.2 | Inherently safe design measures |
+| §6.3 | Safeguarding and protective measures |
+| §6.4 | Information for use |
+| Annex A | Risk graph reference |
+| Annex B | Examples of hazards |
+
+<Tip>
+Run the reviewer immediately after the builder completes. Open findings in the residual risk summary tab before triggering any downstream skills — the PLr and SIL determination skills read hazard severity values directly from this workbook.
+</Tip>

@@ -1,0 +1,115 @@
+---
+title: "Robot cell scope definition builder and reviewer skill"
+description: "Define robot cell scope with robot type, payload, reach, speed parameters, hazard zone boundaries, and safeguarding strategy per ISO 10218-2 and ANSI R15.06."
+---
+
+The robot cell scope skill pair produces a structured xlsx workbook that establishes the physical and functional boundaries of a robot installation before any compliance matrix work begins. It captures the robot's type, reach, payload, and speed envelope; defines the hazard zone boundaries (restricted space, safeguarded space, operating space, collaborative workspace); and selects the safeguarding strategy — fixed guards, interlocked guards, presence sensing, or collaborative operation modes — aligned to the risk profile established upstream. The skill targets ISO 10218-2:2025 (Safety requirements for robot systems and integration) and ANSI/RIA R15.06-2012 R2017, and its output is the shared input consumed by both the ISO 10218 and ANSI R15.06 compliance matrix skills.
+
+<Note>
+**Chain position:** The robot cell scope has no mandatory upstream dependency but is typically triggered after the ISO 12100 risk assessment is complete. Its output feeds into:
+- [`iso10218-compliance-matrix`](/skills/iso10218-compliance-matrix) — ISO robot integration compliance
+- [`ansi-r1506-compliance-matrix`](/skills/ansi-r1506-compliance-matrix) — North American compliance matrix
+</Note>
+
+## Trigger phrase
+
+```text
+Define the robot cell scope for [installation description]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder produces a cell scope definition workbook that documents every parameter needed by downstream compliance matrix skills to perform clause-by-clause evaluation.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="Robot parameters" icon="robot">
+        Robot type (6-axis, SCARA, cobot, Cartesian), manufacturer, model, reach (mm), payload (kg), maximum TCP speed (m/s), and control system version.
+      </Card>
+      <Card title="Hazard zone boundaries" icon="border-all">
+        Spatial definition of restricted space, safeguarded space, operating space, and (for cobots) collaborative workspace with dimension tables and reference to cell layout drawing.
+      </Card>
+      <Card title="Safeguarding strategy" icon="shield">
+        Selected safeguarding method(s) per zone — fixed guards, interlocked guards with/without guard locking, presence sensing devices (light curtains, area scanners, safety mats), or collaborative operation mode (SSM, PFL, hand-guiding, safety-rated monitored stop).
+      </Card>
+      <Card title="Task and personnel matrix" icon="users">
+        Operator tasks, maintenance tasks, and bystander exposure scenarios mapped to each zone, with frequency and duration estimates for risk input.
+      </Card>
+    </CardGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Parse installation description">
+        Extract robot type, operational context, task descriptions, and facility constraints from the trigger phrase.
+      </Step>
+      <Step title="Populate robot parameters">
+        Fill the robot parameters tab with manufacturer data sheet values for reach, payload, and maximum speed. Flag any parameters that require measurement at commissioning.
+      </Step>
+      <Step title="Define hazard zones">
+        Apply ISO 10218-2:2025 §5.4 zone definitions to establish restricted space, safeguarded space, operating space, and collaborative workspace boundaries. Reference cell layout drawing number if available.
+      </Step>
+      <Step title="Select safeguarding strategy">
+        Map each zone to the applicable safeguarding method(s) and record the basis for selection (risk level from ISO 12100, collaborative operation mode per ISO/TS 15066 if applicable).
+      </Step>
+      <Step title="Build task and personnel matrix">
+        List all tasks performed in or near the cell, identify the personnel category for each task, and estimate exposure frequency and duration for downstream risk estimation.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer confirms that the scope definition is internally consistent, that robot parameters match the declared installation class, and that the safeguarding strategy is appropriate for the risk level established upstream.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="Parameter completeness KPI" icon="gauge-high">
+        Count of robot parameters populated vs. required, missing datasheet references, and parameters flagged for commissioning measurement.
+      </Card>
+      <Card title="Zone coverage map" icon="map">
+        Visual summary of hazard zones defined and the safeguarding methods assigned to each, flagging any zone with no assigned safeguarding.
+      </Card>
+      <Card title="Strategy alignment check" icon="circle-check">
+        Comparison of selected safeguarding strategy against the risk level from the ISO 12100 output, flagging mismatches where a high-risk zone has a low-assurance safeguarding method.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings with parameter or zone reference, finding type, and recommended action.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="Scope completeness">
+        Verifies that all four zone types (restricted, safeguarded, operating, collaborative if applicable) are defined and that every zone has at least one assigned safeguarding method.
+      </Accordion>
+      <Accordion title="Parameter consistency">
+        Checks that payload, reach, and speed values are internally consistent (e.g., maximum speed is achievable within the declared reach at the declared payload) and that values match the robot model's published specifications.
+      </Accordion>
+      <Accordion title="Safeguarding strategy alignment with risk">
+        Confirms that the selected safeguarding method for each zone is appropriate for the risk level identified in the ISO 12100 assessment — for example, that a high-risk zone does not rely solely on administrative controls.
+      </Accordion>
+    </AccordionGroup>
+
+    <Warning>
+      If the installation includes collaborative operation (ISO/TS 15066 modes), the reviewer checks that the collaborative workspace is explicitly bounded and that a biomechanical limits assessment is referenced. Without this, the ISO 10218 compliance matrix skill will flag an open finding.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Standards and clause coverage
+
+| Standard | Clause | Topic |
+|---|---|---|
+| ISO 10218-2:2025 | §5.4 | Space definitions and safeguarding |
+| ISO 10218-2:2025 | §5.5 | Safeguarding and protective measures |
+| ISO 10218-2:2025 | §5.10 | Collaborative robot operation |
+| ANSI/RIA R15.06-2012 | §4 | Space and safeguarding definitions |
+| ISO/TS 15066:2016 | §4 | Collaborative workspace requirements |
+
+<Tip>
+Include the cell layout drawing number in the hazard zone boundaries tab. Both compliance matrix skills reference this drawing number when generating their evidence columns, and the declaration of conformity skill uses it as a machine identification reference.
+</Tip>

@@ -1,0 +1,78 @@
+---
+title: "IEC 62443 zone and conduit plan builder and reviewer"
+description: "Generate an IEC 62443-3-2 zone segmentation plan with conduit protocol allowlists, security level assignments, and firewall rules for OT networks."
+---
+
+The `zone-conduit-plan-builder` produces an IEC 62443-3-2 zone and conduit plan that groups IACS assets into security zones and defines conduits — the controlled communication paths between zones. Each zone receives a Security Level Achieved (SL-A) assignment that must meet or exceed its SL-T from the risk assessment. Conduit definitions include protocol allowlists, security controls, and monitoring requirements. This is the terminal skill in the cybersecurity lane.
+
+<Note>
+**Chain position:** Consumes `ot-asset-inventory-builder` and `iec62443-risk-assessment-builder` outputs. Terminal node in the cybersecurity lane.
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Create a zone and conduit plan for [OT network/facility description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | Zone Definitions | Zone name, description, asset members, SL-T (from risk assessment), SL-A (achieved) |
+    | Conduit Definitions | Conduit name, source zone, destination zone, allowed protocols, security controls |
+    | Zone-Conduit Diagram | Tabular representation of zone connectivity matrix |
+    | Firewall Rule Summary | Rule number, source zone, destination zone, protocol, port, action (allow/deny/log) |
+    | Monitoring Requirements | Zone, event types to monitor, SIEM forwarding, alert threshold |
+    | Compensating Controls | Asset with gap, compensating control, residual risk, review date |
+
+    **Typical zone structure for a robot cell:**
+
+    | Zone | Assets | SL-T |
+    |------|--------|------|
+    | Safety Zone | Safety PLC, E-stop circuit | SL 3 |
+    | Robot Control Zone | Robot controller, teach pendant | SL 2 |
+    | AMR Fleet Zone | Fleet manager, AMR controllers | SL 2 |
+    | OT Network Zone | Industrial switches, SCADA | SL 2 |
+    | Engineering Zone | Programming PCs, HMI | SL 1 |
+    | DMZ | Historian, data diode | SL 2 |
+
+    **Zone SL-A requirement:** SL-A ≥ SL-T for every zone. If SL-A < SL-T, a compensating control or upgrade is required.
+
+    **Conduit security controls by SL:**
+
+    | SL-T | Minimum conduit controls |
+    |------|------------------------|
+    | SL 1 | Firewall with allowlist, logging |
+    | SL 2 | Firewall + IDS/IPS, encrypted transport, MFA |
+    | SL 3 | Above + data diode or unidirectional gateway, anomaly detection |
+    | SL 4 | Air gap or hardware-enforced unidirectional gateway |
+  </Tab>
+  <Tab title="Reviewer">
+    The `zone-conduit-plan-checklist-reviewer` validates the plan for SL compliance and conduit security adequacy.
+
+    **Dashboard components:**
+    - KPI tiles: zone count, conduit count, SL-A ≥ SL-T compliance %, firewall rule count
+    - Compliance bar: IEC 62443-3-2 zone & conduit model coverage
+    - Findings table: SL-A < SL-T gaps, undocumented conduits, missing monitoring
+
+    **Checks performed:**
+    - SL-A ≥ SL-T for every zone (or compensating control documented)
+    - All inter-zone communication paths defined as conduits (no undocumented connections)
+    - Protocol allowlists restrict to business-necessary protocols only
+    - Safety zone conduits use highest security controls
+    - All conduits have monitoring/logging requirements
+    - Firewall rules implement default-deny with explicit allow rules
+    - IT/OT boundary conduit uses at minimum a DMZ architecture
+  </Tab>
+</Tabs>
+
+## Standards coverage
+
+| Standard | Relevance |
+|----------|-----------|
+| IEC 62443-3-2:2020 | Zone and conduit model — primary standard |
+| IEC 62443-3-3 | System security requirements per security level |
+| IEC 62443-2-1 | Security management — monitoring and incident response |
+| NIST SP 800-82 | ICS security — DMZ and zone architecture guidance |

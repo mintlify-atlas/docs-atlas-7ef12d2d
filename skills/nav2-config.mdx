@@ -1,0 +1,80 @@
+---
+title: "ROS2 Nav2 stack configuration builder and reviewer"
+description: "Generate a Nav2 parameter specification covering global and local costmaps, planner plugin, controller plugin, and recovery behavior settings for mobile robots."
+---
+
+The `nav2-config-builder` produces a Nav2 parameter specification covering the global costmap, local costmap, planner plugin, controller plugin, and recovery behaviors. It consumes the behavior tree specification and ROS2 system architecture as upstream inputs, and outputs the structured YAML parameter reference used to configure a Nav2 navigation stack for an AMR or mobile robot.
+
+<Note>
+**Chain position:** Consumes `behavior-tree-spec-builder` and `ros2-system-architecture-builder` outputs. Terminal node in the ROS2 lane (alongside `tf-tree-spec-builder`).
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Build Nav2 config for [mobile robot/AMR description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | Global Costmap | Resolution, size, update frequency, layers (static, obstacle, inflation) |
+    | Local Costmap | Rolling window size, update frequency, layers, footprint |
+    | Planner | Plugin name, parameters (tolerance, allow_unknown, max_iterations) |
+    | Controller | Plugin name, parameters (max_vel_x, max_vel_theta, goal_checker) |
+    | Recovery Behaviors | Spin, backup, clear costmap — order and parameters |
+    | BT Navigator | BT XML path, plugin list, goal checker plugin |
+
+    **Example costmap YAML structure:**
+    ```yaml
+    global_costmap:
+      global_costmap:
+        ros__parameters:
+          update_frequency: 1.0
+          publish_frequency: 1.0
+          global_frame: map
+          robot_base_frame: base_link
+          resolution: 0.05
+          track_unknown_space: true
+          plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+          inflation_layer:
+            plugin: "nav2_costmap_2d::InflationLayer"
+            cost_scaling_factor: 3.0
+            inflation_radius: 0.55
+    ```
+
+    **Planner plugins supported:**
+
+    | Plugin | Best for |
+    |--------|---------|
+    | NavFn (Dijkstra/A*) | Simple environments, known maps |
+    | Smac Planner (A* with analytic expansion) | Kinodynamic constraints |
+    | Theta* | Any-angle paths |
+  </Tab>
+  <Tab title="Reviewer">
+    The `nav2-config-checklist-reviewer` validates the Nav2 configuration for consistency and safety margins.
+
+    **Dashboard components:**
+    - KPI tiles: costmap layer count, planner configured (Y/N), controller configured (Y/N), recovery behavior count
+    - Compliance bar: configuration completeness
+    - Findings table: inflation radius vs. robot footprint conflicts, missing recovery behaviors
+
+    **Checks performed:**
+    - Inflation radius ≥ robot footprint radius (safety margin)
+    - Global and local costmap resolutions are consistent
+    - At least one recovery behavior configured for stuck scenarios
+    - Controller max velocities match operating envelope specification
+    - BT navigator references a valid BT XML file path
+    - Goal checker tolerance defined
+  </Tab>
+</Tabs>
+
+## Compatibility
+
+| Item | Detail |
+|------|--------|
+| Nav2 version | ROS 2 Humble / Iron / Jazzy |
+| Costmap layers | static_layer, obstacle_layer, voxel_layer, inflation_layer, spatio_temporal_voxel_layer |
+| Controller plugins | DWB, Regulated Pure Pursuit (RPP), MPPI |

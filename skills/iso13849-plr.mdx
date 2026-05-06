@@ -1,0 +1,141 @@
+---
+title: "ISO 13849-1 PLr determination builder and reviewer"
+description: "Determine and review the required Performance Level for each safety function per ISO 13849-1:2023, including category, MTTFd, DC, and CCF analysis."
+---
+
+The ISO 13849-1 PLr determination skill pair translates hazard severity data from the ISO 12100 risk assessment into a required Performance Level (PLr) for each identified safety function, then derives the hardware architecture needed to achieve that PLr. It targets ISO 13849-1:2023 — Safety of machinery — Safety-related parts of control systems — and produces a multi-tab xlsx workbook with PLr determination, architecture category selection (B through 4), mean time to dangerous failure per channel (MTTFd), diagnostic coverage (DC), and common cause failure (CCF) analysis. The output is the primary safety function integrity evidence consumed by the compliance matrix and declaration of conformity skills.
+
+<Note>
+**Chain position:** Consumes the output of [`iso12100-risk-assessment`](/skills/iso12100-risk-assessment). Runs in parallel with [`iec62061-sil`](/skills/iec62061-sil). Its output feeds into:
+- [`iso10218-compliance-matrix`](/skills/iso10218-compliance-matrix)
+- [`ansi-r1506-compliance-matrix`](/skills/ansi-r1506-compliance-matrix)
+- [`declaration-of-conformity`](/skills/declaration-of-conformity)
+</Note>
+
+## Trigger phrase
+
+```text
+Determine the PLr for [safety function] using ISO 13849-1
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder reads the residual risk data from the ISO 12100 workbook and produces a PLr determination workbook for each safety function, with architecture recommendations and supporting calculations.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="PLr determination" icon="arrow-up-right-dots">
+        Risk graph traversal per ISO 13849-1 §5 for each safety function — severity (S1/S2), frequency/exposure (F1/F2), possibility of avoidance (P1/P2) — yielding PLr a through e.
+      </Card>
+      <Card title="Category and architecture" icon="diagram-project">
+        Selected architecture category (B, 1, 2, 3, or 4) with structural description, fault tolerance, and comparison against PLr requirement. Includes rationale for category choice.
+      </Card>
+      <Card title="MTTFd calculation" icon="calculator">
+        MTTFd per channel computed from B10d values (for electromechanical components) or T10d values, with operational parameters (nop, dop, hop, tcycle) and channel classification (low / medium / high).
+      </Card>
+      <Card title="DC and CCF analysis" icon="shield-halved">
+        Diagnostic coverage (DC) per subsystem from ISO 13849-1 Annex E lookup table, DCavg computation, and CCF scoring per Annex F checklist with achieved CCF score vs. minimum 65-point threshold.
+      </Card>
+    </CardGroup>
+
+    ### Key formulas
+
+    ```text
+    PL = f(Category, MTTFd, DCavg)
+
+    Lookup via ISO 13849-1 Table K.1:
+      Category B/1: no DC requirement
+      Category 2:   DC_avg ≥ 60% (low) or ≥ 90% (medium)
+      Category 3/4: DC_avg ≥ 60% (low), 90% (medium), or 99% (high)
+
+    MTTFd per channel (electromechanical):
+      MTTFd = B10d / (0.1 × nop)
+      nop = (dop × hop × 3600) / tcycle
+
+    CCF minimum score: 65 points (Annex F)
+    ```
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Import risk assessment data">
+        Read severity (S), frequency (F), and avoidance (P) parameters from the ISO 12100 residual risk summary for each safety function.
+      </Step>
+      <Step title="Determine PLr">
+        Traverse the ISO 13849-1 risk graph (§5, Figure 5) using S, F, P inputs to yield PLr for each safety function.
+      </Step>
+      <Step title="Select architecture category">
+        Recommend the minimum category capable of achieving PLr, based on the PL–Category–MTTFd–DC matrix in ISO 13849-1 Table K.1.
+      </Step>
+      <Step title="Calculate MTTFd">
+        Compute MTTFd per channel using component B10d or T10d values and operational parameters. Flag any channel where MTTFd cannot be established from published data.
+      </Step>
+      <Step title="Score DC and CCF">
+        Look up DC values per subsystem from Annex E. Compute DCavg. Score the CCF checklist per Annex F and verify the 65-point minimum is met.
+      </Step>
+      <Step title="Verify achieved PL ≥ PLr">
+        Cross-check the achieved PL (from category + MTTFd + DCavg combination) against PLr. Flag any safety function where achieved PL is below PLr.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer verifies calculation correctness, category selection rationale, MTTFd data provenance, and DC/CCF scoring against standard normative tables.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="Safety function summary KPI" icon="gauge-high">
+        Total safety functions assessed, count where achieved PL ≥ PLr, count where PL < PLr (non-compliant), and count pending component data.
+      </Card>
+      <Card title="PL distribution chart" icon="chart-bar">
+        Bar chart of PLr targets (a–e) vs. achieved PL across all safety functions, highlighting gaps.
+      </Card>
+      <Card title="MTTFd data quality" icon="database">
+        Table of components with no published B10d value, estimated values, or values outside the standard range — flagged for engineering review.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings per safety function with clause reference, finding type, and recommended action.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="Category selection rationale">
+        Verifies that the selected category is appropriate for the PLr target, that the structural description matches the normative description in ISO 13849-1 §6, and that fault tolerance matches the category (Category 3/4 require dual-channel).
+      </Accordion>
+      <Accordion title="MTTFd calculations">
+        Checks that B10d or T10d values are sourced from component datasheets or manufacturer declarations, that operational parameters (nop, dop, hop, tcycle) are documented, and that the resulting MTTFd falls within the low / medium / high classification boundaries of Table K.1.
+      </Accordion>
+      <Accordion title="DC values against Annex E table">
+        Confirms that DC values are selected from the ISO 13849-1 Annex E normative table, that each DC value is matched to the correct diagnostic measure (cross-monitoring, plausibility check, etc.), and that DCavg is computed correctly as the weighted average across subsystems.
+      </Accordion>
+      <Accordion title="CCF scoring">
+        Verifies that the CCF checklist is complete, that the total score is ≥ 65 points as required for Categories 2, 3, and 4, and that scoring is supported by design evidence (e.g., physical separation distance, different technology).
+      </Accordion>
+    </AccordionGroup>
+
+    <Warning>
+      If any safety function achieves PL < PLr, the non-compliant finding is automatically propagated to the ISO 10218 and ANSI R15.06 compliance matrix open findings sections. Resolve before generating the declaration of conformity.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Standards and clause coverage
+
+| ISO 13849-1:2023 clause | Topic |
+|---|---|
+| §5 | Risk assessment and PLr determination |
+| §6 | Categories B through 4 — structural requirements |
+| §7 | Quantification: MTTFd, DC, CCF |
+| §9 | Validation requirements |
+| Annex E | Diagnostic coverage measures |
+| Annex F | Common cause failure checklist |
+| Annex K | PL tables (Category × MTTFd × DC) |
+
+<Info>
+ISO 13849-1 and IEC 62061 can be applied to the same safety function. If both skills are run in parallel, the compliance matrix skill accepts evidence from either standard on a per-function basis — you do not need to cover every function with both approaches.
+</Info>

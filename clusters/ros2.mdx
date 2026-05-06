@@ -1,0 +1,182 @@
+---
+title: "ROS2 skills: architecture, URDF, Nav2, and TF tree"
+description: "Five pairs: ros2-system-architecture, urdf-model-spec, behavior-tree-spec, nav2-config, tf-tree-spec. Node/topic/service/action specs, DDS QoS, REP 105."
+---
+
+The ROS2 cluster automates the five structured software-architecture artifacts that robot development teams must maintain alongside their source code. These documents are the primary deliverables for design reviews, system integration gates, and customer acceptance: a complete node graph with DDS QoS profiles, a URDF/xacro kinematic chain with inertial tensors, a BehaviorTree.CPP node catalog with blackboard definitions, a Nav2 costmap and planner configuration record, and a TF frame hierarchy that conforms to REP 105 and REP 103. Five builder + reviewer pairs produce each artifact as an audit-ready xlsx workbook, chained so that the system architecture feeds downstream specs as a stable contract.
+
+<CardGroup cols={2}>
+  <Card title="ros2-system-architecture-builder" icon="diagram-project" href="/skills/ros2-system-architecture">
+    Produces a node graph, topic/service/action catalog, lifecycle state machine table, and DDS QoS profile register.
+  </Card>
+  <Card title="ros2-system-architecture-reviewer" icon="circle-check" href="/skills/ros2-system-architecture">
+    Audits node naming conventions, QoS consistency across publisher/subscriber pairs, and lifecycle state coverage.
+  </Card>
+  <Card title="urdf-model-spec-builder" icon="cube" href="/skills/urdf-model-spec">
+    Generates a URDF/xacro kinematic chain spec with link inertial tensors, joint limits, and transmission definitions.
+  </Card>
+  <Card title="urdf-model-spec-reviewer" icon="circle-check" href="/skills/urdf-model-spec">
+    Validates kinematic closure, inertial tensor positive-definiteness, and joint limit consistency against the motion planner config.
+  </Card>
+  <Card title="behavior-tree-spec-builder" icon="sitemap" href="/skills/behavior-tree-spec">
+    Catalogs BehaviorTree.CPP node types, blackboard key definitions, and subtree composition with input/output port specs.
+  </Card>
+  <Card title="behavior-tree-spec-reviewer" icon="circle-check" href="/skills/behavior-tree-spec">
+    Checks blackboard key type consistency across nodes, validates subtree port bindings, and flags unreachable tree branches.
+  </Card>
+  <Card title="nav2-config-builder" icon="map" href="/skills/nav2-config">
+    Records Nav2 costmap layer configuration (global and local), planner plugin selection and parameters, and recovery behavior sequencing.
+  </Card>
+  <Card title="nav2-config-reviewer" icon="circle-check" href="/skills/nav2-config">
+    Validates costmap resolution consistency, plugin parameter completeness, and recovery behavior coverage against the operating envelope.
+  </Card>
+  <Card title="tf-tree-spec-builder" icon="tree" href="/skills/tf-tree-spec">
+    Documents the TF frame hierarchy from `map` through `odom` to `base_link` and all sensor frames per REP 105 and REP 103.
+  </Card>
+  <Card title="tf-tree-spec-reviewer" icon="circle-check" href="/skills/tf-tree-spec">
+    Verifies REP 105 frame naming, REP 103 axis conventions (x-forward, y-left, z-up), and broadcaster responsibility assignments.
+  </Card>
+</CardGroup>
+
+## Skill pair details
+
+### ros2-system-architecture-builder + reviewer
+
+The system architecture builder captures every ROS2 communication interface in structured form. The output xlsx workbook contains four tabs: node inventory, topic/service/action catalog, lifecycle state table, and DDS QoS profile register.
+
+<AccordionGroup>
+  <Accordion title="Node graph and lifecycle states">
+    Each node record includes: package name, executable name, namespace, node name, lifecycle managed (yes/no), and the set of lifecycle states the node transitions through (Unconfigured → Inactive → Active → Finalized). Non-lifecycle nodes record their startup dependencies instead.
+  </Accordion>
+  <Accordion title="Topic, service, and action catalog">
+    Every communication interface is recorded with: name, type (topic / service / action), message/service/action type, publisher nodes, subscriber nodes, and the QoS profile ID. This catalog is the primary input for the URDF, behavior tree, and Nav2 config builders.
+  </Accordion>
+  <Accordion title="DDS QoS profiles">
+    QoS profiles are recorded by ID and define: reliability (RELIABLE / BEST_EFFORT), durability (VOLATILE / TRANSIENT_LOCAL), history (KEEP_LAST / KEEP_ALL), depth, deadline, lifespan, and liveliness. The reviewer flags mismatches between publisher and subscriber QoS policies, which cause silent data loss in RMW implementations.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### urdf-model-spec-builder + reviewer
+
+The URDF builder produces a kinematic chain specification that complements the URDF/xacro source file with structured, reviewable records. Engineers use it as the single source of truth for link inertial properties, joint limits, and transmission configuration.
+
+A minimal xacro link block with inertial tensor — the format the URDF spec documents for each link:
+
+```xml
+<link name="forearm_link">
+  <inertial>
+    <origin xyz="0.0 0.0 0.13" rpy="0 0 0"/>
+    <mass value="2.306"/>
+    <!-- Inertial tensor (kg·m²), measured or CAD-extracted -->
+    <inertia ixx="0.01083" ixy="0.0" ixz="0.0"
+             iyy="0.01083" iyz="0.0" izz="0.00270"/>
+  </inertial>
+  <visual>
+    <geometry><mesh filename="package://robot_description/meshes/forearm.stl"/></geometry>
+  </visual>
+  <collision>
+    <geometry><box size="0.06 0.06 0.26"/></geometry>
+  </collision>
+</link>
+
+<joint name="elbow_joint" type="revolute">
+  <parent link="upper_arm_link"/>
+  <child link="forearm_link"/>
+  <origin xyz="0.0 0.0 0.4" rpy="0 0 0"/>
+  <axis xyz="0 1 0"/>
+  <limit lower="-2.356" upper="2.356" effort="150.0" velocity="3.14"/>
+  <dynamics damping="0.1" friction="0.0"/>
+</joint>
+```
+
+<Note>
+  The URDF spec builder records whether inertial tensors were derived from CAD, measurement, or estimation. The reviewer flags estimated values with a `VERIFY` tag so integration engineers know which links require physical validation before final acceptance.
+</Note>
+
+---
+
+### behavior-tree-spec-builder + reviewer
+
+The behavior tree builder documents the BehaviorTree.CPP node catalog used by the robot's executive layer. Each node record captures its type (Action, Condition, Decorator, Control), C++ class name, input and output port definitions, and which blackboard keys it reads or writes.
+
+<AccordionGroup>
+  <Accordion title="Node catalog">
+    For each BT node: node name, type, registration name (used in XML), input ports with type and default value, output ports with type, and the subtree(s) in which the node appears. Control nodes (Sequence, Fallback, Parallel) record their child count constraints.
+  </Accordion>
+  <Accordion title="Blackboard key definitions">
+    Every blackboard key is documented with: key name, C++ type, owning node (writer), consuming nodes (readers), scope (global / subtree-local), and default value. The reviewer checks that no key is read before it is written in any valid tree execution path.
+  </Accordion>
+  <Accordion title="Subtree composition">
+    Subtrees are cataloged with their input and output port bindings, remapping rules, and the parent tree positions where they are instantiated. The reviewer validates that all port bindings resolve to defined blackboard keys.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### nav2-config-builder + reviewer
+
+The Nav2 config builder records the complete costmap and planner configuration that controls autonomous navigation behavior. The output covers both global and local costmaps, the selected planner plugin, and the recovery behavior sequence.
+
+<AccordionGroup>
+  <Accordion title="Costmap layers (global and local)">
+    Each costmap records: update frequency, resolution, width, height, rolling window (local only), and the ordered layer stack. Layer records include: plugin class, topic, observation sources, max obstacle height, obstacle range, raytrace range, and inflation radius. Typical stacks include StaticLayer, ObstacleLayer, VoxelLayer, and InflationLayer.
+  </Accordion>
+  <Accordion title="Planner plugin configuration">
+    Planner records include: plugin class (e.g., `nav2_navfn_planner/NavfnPlanner`, `nav2_smac_planner/SmacPlanner2D`), tolerance, allow unknown, use astar flag, and any plugin-specific parameters. The reviewer validates that the planner resolution matches the global costmap resolution.
+  </Accordion>
+  <Accordion title="Recovery behavior sequence">
+    Recovery behaviors are listed in priority order: ClearEntireCostmap, Spin, BackUp, Wait. Each record includes the plugin class, action server name, and the trigger conditions (planner failure, controller failure, recovery failure).
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### tf-tree-spec-builder + reviewer
+
+The TF tree builder documents the complete frame hierarchy, broadcaster assignments, and publication rates. All frame names and axis conventions must conform to REP 105 (coordinate frames for mobile platforms) and REP 103 (standard units and coordinate conventions).
+
+**REP 105 frame hierarchy:**
+
+```text
+map
+└── odom
+    └── base_link
+        ├── base_laser_link
+        ├── base_footprint
+        ├── imu_link
+        └── camera_link
+            └── camera_depth_optical_frame
+```
+
+**REP 103 axis conventions:** x-forward, y-left, z-up for all body-fixed frames. Camera optical frames use z-forward, x-right, y-down (standard OpenCV convention) — the TF spec records the optical-to-body transform for each camera.
+
+<Tip>
+  The TF spec builder records the broadcaster node responsible for each transform. The reviewer flags any frame that lacks a broadcaster assignment or where two nodes claim to publish the same frame — a common source of TF tree conflicts in multi-robot deployments.
+</Tip>
+
+## ROS2 lane chain
+
+```text
+ROS2 System Architecture → URDF Spec → Behavior Tree Spec → Nav2 Config → TF Tree Spec
+```
+
+Each downstream builder consumes the upstream xlsx as its primary input. The URDF spec reads joint names from the system architecture node catalog; the behavior tree spec reads topic names from the architecture; the Nav2 config reads costmap frame names from the TF tree spec.
+
+## Supported ROS2 distributions
+
+<CardGroup cols={2}>
+  <Card title="Humble Hawksbill" icon="code-branch">
+    LTS release (May 2022 – May 2027). Primary target for industrial deployments.
+  </Card>
+  <Card title="Iron Irwini" icon="code-branch">
+    Standard release (May 2023 – Nov 2024). Supported in builder output validation.
+  </Card>
+  <Card title="Jazzy Jalisco" icon="code-branch">
+    LTS release (May 2024 – May 2029). Current recommended target for new projects.
+  </Card>
+  <Card title="Future distributions" icon="clock">
+    The skill suite targets RMW-agnostic patterns. Distribution-specific features are flagged in builder output.
+  </Card>
+</CardGroup>

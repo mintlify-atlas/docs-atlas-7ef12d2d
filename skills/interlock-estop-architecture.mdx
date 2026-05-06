@@ -1,0 +1,136 @@
+---
+title: "Robot E-stop and interlock architecture builder skill"
+description: "Design robot cell E-stop networks covering device locations, category ratings (Cat B–4), dual-channel wiring, and monitored reset behavior per ISO 13850."
+---
+
+The interlock and E-stop architecture builder produces a structured xlsx workbook that defines the complete E-stop network for a robot cell — specifying E-stop device locations, stop category (Cat 0, 1, or 2), category rating (Cat B through 4), dual-channel wiring topology, safety relay or controller logic configuration, the interlock chain connecting all safeguarding devices, and monitored manual reset behavior. Every design decision is traceable to the safety I/O matrix upstream, and the architecture document is the final node in the cell design lane before transitioning into the operational skills (SOP, LOTO, and training matrix).
+
+<Tabs>
+  <Tab title="Builder">
+    The builder skill ingests the safety I/O matrix xlsx and produces a multi-tab audit-ready xlsx workbook styled in NAVY/Calibri with ISO 13850 stop-category color coding.
+
+    **Trigger phrase**
+
+    ```text
+    Design the interlock and E-stop architecture for [robot cell]
+    ```
+
+    **Workbook tabs**
+
+    <Steps>
+      <Step title="E-stop Device Register">
+        One row per E-stop device: device ID, physical location description, operator access classification (operator panel, teach pendant, fence-mounted, cable pull), ISO 13850 stop category (Cat 0, 1, or 2), and safety category rating (Cat B through 4 per ISO 13849-1).
+      </Step>
+      <Step title="Dual-Channel Wiring Topology">
+        Tabular wiring description for each E-stop circuit: Channel A and Channel B terminal assignments, wire gauge, cable type (standard or safety-rated), cross-monitoring point (safety relay or safety PLC input pair), and maximum allowable cable length for the specified device type.
+      </Step>
+      <Step title="Safety Relay / Controller Logic">
+        Logic description for the safety relay or safety PLC module handling each E-stop circuit: device manufacturer and model, input pair assignments, output relay assignments (drive enable, brake control), and cross-fault detection logic (channel discrepancy window in ms).
+      </Step>
+      <Step title="Interlock Chain">
+        Ordered series circuit diagram description: device sequence from first input (outermost perimeter gate) through to the final drive enable output. Documents whether the chain is series-wired hardware or implemented in the safety PLC's safe logic. Identifies any bypass/muting provisions and their enabling conditions.
+      </Step>
+      <Step title="Reset Behavior">
+        Per-safety-function reset type (automatic vs. monitored manual reset per ISO 13850 Clause 4.1.4), reset device location, reset activation sequence, and post-reset state verification steps (guard closed, E-stop released, area clear).
+      </Step>
+    </Steps>
+
+    **Stop category definitions**
+
+    <CardGroup cols={2}>
+      <Card title="Stop Cat 0 — immediate removal" icon="bolt">
+        Immediate removal of power to actuators. Used where an uncontrolled stop is safer than a controlled coast-down. Robot may not stop on the programmed path. Preferred for high-force or high-inertia axes where coast-down creates secondary hazards.
+      </Card>
+      <Card title="Stop Cat 1 — controlled stop, power removed" icon="hand">
+        Controlled deceleration to standstill, then power removed. Used where path deviation during coast-down is a hazard (e.g., robot holding a part over a fixture). Power removal confirmed by safety relay within a defined time window.
+      </Card>
+      <Card title="Stop Cat 2 — controlled stop, power retained" icon="pause">
+        Controlled deceleration to standstill; power retained at the actuators. Used for collaborative mode or restart-from-position requirements. Requires position monitoring at standstill (SOS — Safe Operating Stop function).
+      </Card>
+      <Card title="Safety category (Cat B–4)" icon="shield">
+        Structural category of the E-stop circuit per ISO 13849-1. Cat 3 or 4 is required for most industrial robot E-stop circuits. Category determines the dual-channel architecture and fault-detection requirements of the E-stop hardware.
+      </Card>
+    </CardGroup>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill ingests the builder's xlsx output and produces a confirmation-measures checklist plus a visual dashboard. It never modifies the source artifact — all gaps are recorded in a Recommended Actions table.
+
+    **Dashboard components**
+
+    <CardGroup cols={2}>
+      <Card title="KPI tile: device coverage" icon="table-cells">
+        Count of E-stop devices with complete stop-category and safety-category documentation out of the total devices identified in the safety I/O matrix.
+      </Card>
+      <Card title="Category assignment distribution" icon="chart-pie">
+        Breakdown of E-stop circuit count by safety category (B, 1, 2, 3, 4), with flags for any circuit where the assigned category appears inconsistent with the risk level indicated in the safety I/O matrix.
+      </Card>
+      <Card title="Interlock chain completeness tile" icon="link">
+        Confirms that every safeguarding device listed in the F-DI register appears in the interlock chain and that the chain sequence is documented without gaps from the outermost guard to the final drive enable.
+      </Card>
+      <Card title="Findings table" icon="triangle-exclamation">
+        Structured list of architecture gaps — missing dual-channel documentation, undocumented reset sequences, missing standstill monitoring for Cat 2 stops — with severity and recommended action.
+      </Card>
+    </CardGroup>
+
+    **Reviewer checks**
+
+    <AccordionGroup>
+      <Accordion title="Category assignments vs. risk">
+        Cross-references each E-stop circuit's safety category assignment against the PLr determined in the upstream iso13849-plr workbook (via the safety I/O matrix). Flags any circuit where the assigned safety category (B through 4) is insufficient to achieve the required PLr.
+      </Accordion>
+      <Accordion title="Dual-channel redundancy">
+        Verifies that all Cat 3 and Cat 4 circuits have documented dual-channel wiring (Channel A and Channel B) with cross-monitoring logic. Confirms that the cross-fault detection discrepancy window is within the limits specified by the safety relay or safety PLC manufacturer.
+      </Accordion>
+      <Accordion title="Reset behavior compliance with ISO 13850">
+        Checks that every safety function requiring a monitored manual reset (per ISO 13850 Clause 4.1.4) has a documented reset device, reset sequence, and area-clear verification step. Flags any safety function where automatic restart after E-stop release has not been explicitly justified.
+      </Accordion>
+      <Accordion title="Stop category justification">
+        Verifies that the rationale for each stop category selection (Cat 0, 1, or 2) is documented relative to the hazard geometry. Specifically checks that Cat 2 stops (power retained at standstill) include a documented Safe Operating Stop (SOS) monitoring provision.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+<Note>
+  **Chain position — cell design lane, terminal node.**
+  This skill consumes: [`safety-io-matrix`](/skills/safety-io-matrix) — F-DI/F-DO register, category assignments, and PLr traceability. Its xlsx output is consumed by:
+  - [`robot-sop`](/skills/robot-sop) — standard operating procedure (references E-stop locations and reset procedures)
+</Note>
+
+## Standards reference
+
+**ISO 13850:2015** — *Safety of machinery — Emergency stop function — Principles for design*
+
+Clause 4.1 defines the mandatory characteristics of E-stop devices (direct-opening, self-latching, positive actuation). Clause 4.1.4 specifies the monitored manual reset requirement.
+
+**ISO 13849-1:2023** — *Safety of machinery — Safety-related parts of control systems — Part 1: General principles for design*
+
+<Info>
+  ISO 13850 covers the E-stop function requirements (stop categories, device characteristics, reset behavior). ISO 13849-1 covers the safety category (B through 4) and Performance Level of the E-stop circuit itself. Both standards apply simultaneously to a compliant E-stop design.
+</Info>
+
+## E-stop circuit stop category selection
+
+```text
+Stop Category Selection Logic:
+
+  Is coast-down to stop a hazard (e.g., robot carrying a part over a person)?
+    → Yes: Use Cat 1 (controlled stop, power removed after standstill)
+
+  Is restart-from-position required (e.g., collaborative mode re-entry)?
+    → Yes: Use Cat 2 (controlled stop, power retained, SOS monitoring required)
+
+  Is immediate power removal the safest option (e.g., high inertia, no downstream hazard)?
+    → Yes: Use Cat 0 (immediate power removal)
+
+  Default for industrial robot E-stop:
+    → Cat 0 or Cat 1. Cat 2 only where explicitly justified.
+```
+
+<Warning>
+  ISO 13850 prohibits automatic restart after an E-stop function has been actuated. A deliberate reset action by a person — at a location with a view of the safeguarded space — is required before the machine can re-enter automatic operation. Any design that allows automatic restart after E-stop release does not comply with ISO 13850 Clause 4.1.4.
+</Warning>
+
+<Tip>
+  When a robot cell has multiple E-stop buttons (operator panel, teach pendant, fence-mounted pull cords), document whether they are wired in series (single shared interlock chain) or as independent circuits feeding the same safety relay input pair. Series wiring simplifies the relay configuration but makes fault isolation harder; independent circuits provide better fault diagnostics but require more safety relay inputs.
+</Tip>

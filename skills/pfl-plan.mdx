@@ -1,0 +1,143 @@
+---
+title: "Cobot Power & Force Limiting plan builder and reviewer"
+description: "Build a PFL plan with biofidelic contact measurements, clamping vs. transient contact classification, and force threshold compliance per ISO/TS 15066:2016."
+---
+
+The Power and Force Limiting plan builder produces a structured xlsx workbook that documents how a cobot application complies with the PFL safeguarding mode defined in ISO/TS 15066:2016. PFL relies on the robot's inherent ability to limit the forces applied during contact to levels that are biomechanically safe, making physical contact permissible without triggering an emergency stop. The builder ingests the upstream biomechanical limits workbook, adds biofidelic measurement records and test setup documentation, and classifies each contact scenario by type to determine the applicable threshold.
+
+<Tabs>
+  <Tab title="Builder">
+    The builder skill ingests the ISO/TS 15066 biomechanical limits xlsx and a cobot application description, then produces a PFL plan workbook documenting all contact scenarios, measurement evidence, and threshold compliance status.
+
+    **Trigger phrase**
+
+    ```text
+    Create a PFL plan for [cobot application]
+    ```
+
+    **Workbook tabs**
+
+    <Steps>
+      <Step title="Contact Scenario Register">
+        All identified contact scenarios for the application with body region, contact geometry, contact type classification, and applicable threshold from ISO/TS 15066 Table A.2.
+      </Step>
+      <Step title="Biofidelic Measurements">
+        Measured force and pressure values per scenario using biofidelic instrumentation, with test setup photographs reference, measurement date, and instrument calibration ID.
+      </Step>
+      <Step title="Threshold Compliance Matrix">
+        Side-by-side comparison of measured vs. threshold values per scenario and body region with RAG compliance status.
+      </Step>
+      <Step title="Test Setup Documentation">
+        Robot configuration, speed, payload, end-effector geometry, and test fixture details used during force measurement, providing full measurement reproducibility evidence.
+      </Step>
+      <Step title="Power Limiting Evidence">
+        Robot power limit settings (watts) if power limiting is applied as the primary control measure, with reference to certified power limit values from the robot manufacturer.
+      </Step>
+    </Steps>
+
+    **Contact type classification**
+
+    <CardGroup cols={2}>
+      <Card title="Transient contact" icon="bolt">
+        Short-duration impact where the robot and human surfaces separate immediately. Applicable to hand, arm, and shoulder contacts in free-space robot motions. Higher allowable force threshold.
+      </Card>
+      <Card title="Quasi-static clamping contact" icon="lock">
+        Human body part becomes trapped between the robot (or its payload) and a fixed structure. Lower allowable force threshold applies. Must be assessed wherever clamping geometry exists.
+      </Card>
+    </CardGroup>
+
+    <Warning>
+      Clamping contact can occur at fixtures, worktable edges, conveyor frames, and even the robot's own links. A reachable workspace geometry review is required to identify all potential clamping points — not just the tool tip.
+    </Warning>
+
+    **Force and power limits summary**
+
+    ```text
+    Contact force limits (ISO/TS 15066:2016 Table A.2 — selected regions):
+
+    Body Region         Transient (N)   Quasi-static (N)
+    Head / neck              130              130
+    Chest                    140              120
+    Abdomen                  110               75
+    Pelvis                   180              110
+    Upper arm / elbow        150              110
+    Lower arm / wrist        160              110
+    Hand                     140              140
+    Finger / thumb           140              140
+
+    Power limit (whole body, ISO/TS 15066 §5.4):  80 W (quasi-static application)
+    ```
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill ingests the PFL plan xlsx and the upstream biomechanical limits xlsx, then produces a confirmation-measures checklist and visual dashboard. Gaps are recorded as findings, never corrected in-place.
+
+    **Dashboard components**
+
+    <CardGroup cols={2}>
+      <Card title="KPI tile: scenarios assessed" icon="list-check">
+        Count of contact scenarios with complete measurement records vs. total identified scenarios.
+      </Card>
+      <Card title="Contact type distribution pie" icon="chart-pie">
+        Split of transient vs. quasi-static scenarios to flag whether conservative clamping classification has been applied appropriately.
+      </Card>
+      <Card title="Compliance bar chart" icon="chart-bar">
+        Per-scenario force margin to threshold, sorted to surface the tightest constraints requiring design attention.
+      </Card>
+      <Card title="Findings table" icon="triangle-exclamation">
+        Non-conformances with severity, affected scenario and body region, and recommended corrective action.
+      </Card>
+    </CardGroup>
+
+    **Reviewer checks**
+
+    <AccordionGroup>
+      <Accordion title="Contact type classification accuracy">
+        Verifies that transient vs. quasi-static classification is supported by geometric evidence for every scenario. Checks that scenarios adjacent to fixtures or structure have not been classified as transient without justification.
+      </Accordion>
+      <Accordion title="Measurement methodology">
+        Confirms that biofidelic instrumentation was used (not generic force gauges), that measurements were taken at the worst-case speed and approach angle, and that calibration traceability is documented.
+      </Accordion>
+      <Accordion title="Threshold compliance">
+        Cross-references each measured value against the correct Table A.2 threshold for the body region and contact type. Flags scenarios within 10% of the threshold as marginal, requiring margin justification.
+      </Accordion>
+      <Accordion title="Test setup documentation">
+        Checks that the test setup tab contains sufficient detail (robot model, software version, payload, end-effector, fixture drawing reference) to allow an independent reproduction of the measurements.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+<Note>
+  **Chain position — PFL plan sits in the cobot lane.**
+  Upstream dependency:
+  - [`iso15066-biomechanical-limits`](/skills/iso15066-biomechanical-limits) — provides per-body-region thresholds and contact type classification baseline
+
+  Parallel peer skill:
+  - [`ssm-plan`](/skills/ssm-plan) — the alternative or complementary SSM safeguarding mode
+
+  PFL is a terminal node in the cobot safeguarding analysis unless hand-guiding is also implemented, in which case [`cobot-hand-guiding`](/skills/cobot-hand-guiding) also consumes the biomechanical limits output.
+</Note>
+
+## Standard reference
+
+**ISO/TS 15066:2016, Section 5.4** — *Power and Force Limiting (PFL)*
+
+PFL is the most commonly applied safeguarding mode for physical human–robot collaboration. The standard permits contact to occur, relying on the robot's force/torque sensing or inherent compliance to keep contact forces below the biomechanical thresholds in Table A.2. PFL requires both force limiting and power limiting to be active simultaneously.
+
+<Info>
+  ISO/TS 15066 does not specify how the robot implements PFL — it may be via joint torque sensing, admittance control, or direct force sensing at the tool. The measurement requirement is for the output contact force, regardless of the implementation method.
+</Info>
+
+## Measurement instrumentation
+
+Biofidelic force measurement devices simulate the mechanical properties of human tissue to measure the effective contact force experienced by the body region, rather than the raw actuator force. Generic load cells do not satisfy the biofidelic requirement.
+
+| Instrument type | Applicability | Notes |
+|---|---|---|
+| Biofidelic measurement device (e.g., Pilz Prism, ATI) | All body regions | Required for ISO/TS 15066 compliance measurements |
+| ISO/TS 15066 compliant dummy | Quasi-static clamping scenarios | Simulates trapped-limb geometry |
+| Robot internal torque sensing | Power limit verification only | Not sufficient for contact force measurement |
+
+<Tip>
+  Document the biofidelic device model, firmware version, and calibration certificate number in the test setup tab. Auditors will request calibration traceability; missing records are one of the most common PFL review findings.
+</Tip>

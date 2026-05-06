@@ -1,0 +1,144 @@
+---
+title: "Cybersecurity skills: IEC 62443 OT risk and segmentation"
+description: "Three pairs: iec62443-risk-assessment, ot-asset-inventory, zone-conduit-plan. IEC 62443-3-2 risk methodology, SL-T per FR1-FR7, zone segmentation."
+---
+
+Industrial robotic systems are increasingly networked — to plant SCADA, to cloud-based fleet management, to remote access systems, and to each other over shared OT backbones. This connectivity introduces industrial cybersecurity risk that must be assessed, documented, and mitigated before a cell goes live. Three builder + reviewer pairs implement the IEC 62443 series methodology for OT environments: an IEC 62443-3-2 risk assessment that assigns Security Level Targets (SL-T) per Foundational Requirement, an IACS asset inventory recording every device's firmware, patch status, and communication interfaces, and a zone and conduit plan that segments the network and enforces protocol allowlists at each conduit. Together these three artifacts form the complete IEC 62443 compliance package for a robot cell or AMR fleet.
+
+<CardGroup cols={2}>
+  <Card title="iec62443-risk-assessment-builder" icon="shield-halved" href="/skills/iec62443-risk-assessment">
+    Produces an IEC 62443-3-2 risk assessment with Security Level Target (SL-T) assigned per Foundational Requirement (FR1–FR7) for each zone.
+  </Card>
+  <Card title="iec62443-risk-assessment-reviewer" icon="circle-check" href="/skills/iec62443-risk-assessment">
+    Validates threat scenario coverage, SL-T rationale against consequence analysis, and produces a risk dashboard with FR coverage heat map.
+  </Card>
+  <Card title="ot-asset-inventory-builder" icon="server" href="/skills/ot-asset-inventory">
+    Generates an IACS asset register recording firmware versions, patch status, communication interfaces, and zone assignment for every device.
+  </Card>
+  <Card title="ot-asset-inventory-reviewer" icon="circle-check" href="/skills/ot-asset-inventory">
+    Audits patch currency, identifies unmanaged firmware versions, and flags devices with interfaces that cross zone boundaries without conduit assignment.
+  </Card>
+  <Card title="zone-conduit-plan-builder" icon="network-wired" href="/skills/zone-conduit-plan">
+    Builds a zone segmentation diagram with conduit protocol allowlists and Security Level assignments for every zone and conduit pair.
+  </Card>
+  <Card title="zone-conduit-plan-reviewer" icon="circle-check" href="/skills/zone-conduit-plan">
+    Validates SL assignments against the risk assessment SL-T outputs, confirms allowlist completeness, and flags conduits missing firewall rule references.
+  </Card>
+</CardGroup>
+
+## IEC 62443-3-2 risk methodology
+
+IEC 62443-3-2 (_Security risk assessment for system design_) defines the process for partitioning an Industrial Automation and Control System (IACS) into zones and conduits, assessing the risk for each zone, and assigning a Security Level Target (SL-T). The SL-T drives the security countermeasure requirements specified in IEC 62443-3-3.
+
+The risk assessment process follows this sequence:
+
+<Steps>
+  <Step title="Define the system under consideration (SUC)">
+    Establish the boundary of the IACS being assessed: which PLCs, HMIs, robots, AMRs, safety PLCs, network switches, and remote access paths are in scope. The OT asset inventory is the primary input to this step.
+  </Step>
+  <Step title="Partition into zones and conduits">
+    Group assets by function, criticality, and access requirements into Security Zones. Define Conduits — the communication paths between zones — and identify what protocols and data flows cross each conduit. The zone and conduit plan captures this partitioning.
+  </Step>
+  <Step title="Conduct threat and consequence analysis">
+    For each zone, identify threat scenarios (unauthorized access, malware propagation, denial-of-service, supply chain compromise) and assess the consequence of a successful attack across four dimensions: safety, environmental, financial, and reputational.
+  </Step>
+  <Step title="Assign Security Level Targets (SL-T)">
+    Assign an SL-T (1–4) to each zone for each Foundational Requirement. SL-T drives the minimum security capability the countermeasures must achieve: SL-1 protects against casual violation; SL-2 against intentional violation with simple means; SL-3 against sophisticated attack; SL-4 against nation-state-level threat.
+  </Step>
+  <Step title="Identify countermeasures and verify achieved SL">
+    Select countermeasures that bring the achieved Security Level (SL-A) to meet or exceed the SL-T for each FR in each zone. Document gaps as risk treatment actions.
+  </Step>
+</Steps>
+
+## Foundational Requirements (FR1–FR7)
+
+IEC 62443-3-3 defines seven Foundational Requirements that structure cybersecurity capability across an IACS. The risk assessment assigns an SL-T for each FR in each zone.
+
+<AccordionGroup>
+  <Accordion title="FR1 — Identification and authentication control">
+    All users, software processes, and devices must be identified and authenticated before being granted access to the IACS. In robot cells this covers: operator panel login, PLC programming access, robot controller remote access, and ROS2 node authentication via DDS Security.
+  </Accordion>
+  <Accordion title="FR2 — Use control">
+    Enforce the principle of least privilege — every user, process, and device gets only the access rights required for its function. Role-based access control on the robot controller (Operator / Programmer / Safety Engineer / Administrator) is a direct implementation of FR2.
+  </Accordion>
+  <Accordion title="FR3 — System integrity">
+    Ensure the integrity of the IACS from unauthorized manipulation. Covers: software integrity verification (signed firmware, code signing for PLC programs), unauthorized software prevention (application allowlisting on HMI), and communication integrity (message authentication on safety-critical protocols).
+  </Accordion>
+  <Accordion title="FR4 — Data confidentiality">
+    Protect information from unauthorized disclosure in transit and at rest. Relevant to robot cells when intellectual property (programs, process recipes, force profiles) transits the network or is stored on removable media.
+  </Accordion>
+  <Accordion title="FR5 — Restricted data flow">
+    Limit data flow to only required communication paths — implemented through zone segmentation, conduit protocol allowlists, and firewall rules. The zone and conduit plan is the primary FR5 artifact.
+  </Accordion>
+  <Accordion title="FR6 — Timely response to events">
+    Detect, log, and respond to cybersecurity events within a timeframe appropriate to the safety and operational risk. Covers: security event logging on PLCs and robots, SIEM integration, and incident response playbooks for OT environments.
+  </Accordion>
+  <Accordion title="FR7 — Resource availability">
+    Ensure that the IACS is available for legitimate use even under attack — specifically denial-of-service conditions. Covers: network redundancy, resource limit configurations on OT network switches, and watchdog timers on robot controllers that fail-safe on communication loss.
+  </Accordion>
+</AccordionGroup>
+
+## Skill pair details
+
+### iec62443-risk-assessment-builder + reviewer
+
+The risk assessment builder produces one risk record per threat scenario per zone. Each record captures: zone name, threat scenario description, threat actor capability (FR1–FR7 dimension), consequence category (safety / operational / financial / reputational), unmitigated likelihood, unmitigated consequence, unmitigated risk score, countermeasures applied, residual likelihood, residual consequence, residual risk score, and SL-T assigned per FR.
+
+<Tip>
+  Use the OT asset inventory as the primary input when running the risk assessment builder. The asset inventory provides the complete device list, communication interface catalog, and zone assignment — all required to enumerate threat scenarios systematically.
+</Tip>
+
+---
+
+### ot-asset-inventory-builder + reviewer
+
+The asset inventory builder produces an IACS asset register — the definitive record of every device in the system under consideration. Each asset record contains:
+
+| Field | Description |
+|-------|-------------|
+| Asset ID | Unique identifier |
+| Asset type | PLC / Robot controller / HMI / Switch / Firewall / Sensor / Actuator |
+| Manufacturer / Model | Including hardware revision |
+| Firmware version | Currently installed |
+| Firmware release date | For patch age calculation |
+| Latest available firmware | From manufacturer advisory |
+| Patch status | Current / Outdated / EOL / Unsupported |
+| Communication interfaces | Ethernet, EtherCAT, PROFINET, serial, USB, wireless |
+| Open ports and services | Per network scan or configuration review |
+| Zone assignment | From the zone and conduit plan |
+| Conduit memberships | Conduits this device participates in |
+| Owner / Responsible engineer | For patch coordination |
+
+<Warning>
+  Many robot controllers and safety PLCs run operating systems or firmware that the manufacturer does not patch on a standard schedule. The reviewer flags all assets with patch status "EOL" or "Unsupported" as requiring compensating controls (network isolation, enhanced monitoring) rather than assuming patching will address the risk.
+</Warning>
+
+---
+
+### zone-conduit-plan-builder + reviewer
+
+The zone and conduit plan builder generates the network segmentation architecture that implements the SL-T assignments from the risk assessment. It produces two primary artifacts: a zone map and a conduit register.
+
+<AccordionGroup>
+  <Accordion title="Zone definitions">
+    Each zone record includes: zone name, zone description, asset members (from the asset inventory), achieved Security Level by FR (SL-A per FR1–FR7), required Security Level Target (SL-T per FR1–FR7 from the risk assessment), and gap analysis (where SL-A < SL-T). Typical robot cell zones: Safety PLC Zone, Robot Controller Zone, HMI/SCADA Zone, Engineering Workstation Zone, and Enterprise DMZ.
+  </Accordion>
+  <Accordion title="Conduit register and protocol allowlists">
+    Each conduit record includes: conduit name, source zone, destination zone, transport medium (Ethernet / fiber / wireless), the enforcing device (managed switch / firewall / industrial DMZ), and the protocol allowlist. The allowlist specifies every permitted protocol (EtherCAT, PROFINET, OPC UA, HTTPS, SSH) with direction (unidirectional / bidirectional), port numbers, and whether deep packet inspection is applied. Protocols not on the allowlist are denied by default.
+  </Accordion>
+  <Accordion title="Security level assignments">
+    The zone and conduit plan records the SL-T and SL-A for each zone by FR, sourced from the risk assessment output. Where SL-A < SL-T, the plan documents the compensating control or the risk acceptance record. The reviewer validates that every SL-T from the risk assessment appears in the zone plan with a corresponding SL-A and gap action.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  The zone and conduit plan directly consumes the IEC 62443-3-2 risk assessment output. The SL-T values assigned per zone per FR in the risk assessment become the security requirements that the zone and conduit plan must demonstrate are met. Always run the risk assessment builder before the zone and conduit plan builder to ensure the SL-T inputs are current.
+</Note>
+
+## Cybersecurity chain
+
+```text
+IEC 62443 Risk Assessment → OT Asset Inventory → Zone & Conduit Plan
+```
+
+In practice, the asset inventory and risk assessment are co-developed iteratively: the initial asset inventory enables the first risk assessment pass, which may reveal assets or interfaces that need to be added back to the inventory. The zone and conduit plan is finalized after the risk assessment SL-T assignments are stable.

@@ -1,81 +1,151 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
-icon: 'rocket'
+title: "Get started with the Robotics Skills Suite in minutes"
+description: "Download a skill file, install it in Claude Desktop or Cowork, trigger it with a natural-language phrase, and understand the builder and reviewer outputs."
 ---
 
-## Get started in three steps
+Getting your first audit-ready artifact from the Robotics Skills Suite takes less than five minutes. You download a `.skill` file, install it in Claude, say what you want in plain English, and receive a structured multi-tab xlsx workbook ready for your quality-management system. This guide walks through the full flow — from download through running the matching reviewer — and explains when to use the bundle zip versus individual skill files.
 
-Get your documentation site running locally and make your first customization.
+## Download options
 
-### Step 1: Set up your local environment
+Before you install, decide how many skills you need.
+
+<CardGroup cols={2}>
+  <Card title="Individual skill files" icon="file">
+    Download a single `.skill` file from the `skills/` directory in the GitHub repository. Best when you only need one or two specific skills, or when you want to evaluate the suite before committing to all 76.
+  </Card>
+  <Card title="Bundle zip (all 76)" icon="file-zipper">
+    Download `robotics-skills-suite-bundle-76.zip` from the repository root. Unzip and install skills selectively or all at once. Best for teams that need the full chain from Foundation through Cybersecurity.
+  </Card>
+</CardGroup>
+
+<Tip>
+  If you're working a complete cell delivery — risk assessment through Declaration of Conformity — install the full Foundation cluster (8 skills) so the chain can run end-to-end. Individual files are fine for one-off deliverables like a LOTO procedure or a model card.
+</Tip>
+
+## Installation and first run
+
+<Steps>
+  <Step title="Download the skill file">
+    Go to the [robotics-skills-suite repository](https://github.com/jherrodthomas/robotics-skills-suite) on GitHub. Navigate to the `skills/` directory and download the `.skill` file for the deliverable you need — for example, `iso12100-risk-assessment-builder.skill`.
+
+    To install all 76 skills at once, download `robotics-skills-suite-bundle-76.zip` from the repository root and unzip it locally.
+  </Step>
+  <Step title="Install in Claude Desktop or Cowork">
+    Open Claude Desktop or Claude Cowork. Click **Save skill** and select the `.skill` file you downloaded. Claude reads the skill's frontmatter and registers its triggering description.
+
+    Repeat for each skill file you want to install. You can install multiple skills from the bundle zip by saving them one by one, or by selecting multiple files if your Claude version supports batch install.
+
+    <Note>
+      Each skill declares its own triggering description in its frontmatter. Claude uses that description to recognize when to activate the skill from your natural-language prompt.
+    </Note>
+  </Step>
+  <Step title="Trigger the builder skill with a natural-language phrase">
+    Once installed, trigger the skill by describing what you want. You don't need to use the exact skill name — describe the deliverable and the context.
+
+    ```text
+    Run an ISO 12100 risk assessment on a new cobot palletizing cell
+    ```
+
+    Claude recognizes the installed skill, prompts you for any missing inputs (robot type, application, hazard list), and runs the builder.
+
+    Other example trigger phrases:
+
+    ```text
+    Generate an ISO/TS 15066 biomechanical limits workbook for a UR10e palletizing arm
+    ```
+
+    ```text
+    Create a ROS2 system architecture document for a mobile manipulation platform running Nav2
+    ```
+
+    ```text
+    Run an IEC 62443-3-2 risk assessment for our AMR fleet OT environment
+    ```
+  </Step>
+  <Step title="Review the builder output">
+    The builder skill produces a **multi-tab xlsx workbook**. Each tab corresponds to a phase or checklist required by the standard. The workbook uses NAVY/Calibri styling with PLr/SIL color coding where applicable.
+
+    Key things to check in the output:
+
+    - Named tabs match the standard's required sections
+    - PLr/SIL color coding reflects your hazard inputs
+    - Formulas are live — changing an input cell recalculates downstream values
+
+    Save the xlsx file with a name that identifies the project and revision, for example `cell-A3-iso12100-rev1.xlsx`. Downstream skills read from this file by name.
+  </Step>
+  <Step title="Run the matching reviewer skill">
+    Every builder has a paired reviewer. Install the corresponding reviewer skill — for example, `iso12100-risk-assessment-reviewer.skill` — and trigger it by pointing at your builder output:
+
+    ```text
+    Review my ISO 12100 risk assessment at cell-A3-iso12100-rev1.xlsx
+    ```
+
+    The reviewer runs a confirmation-measures checklist against the workbook and produces a **visual dashboard** containing:
+
+    - KPI tiles summarizing compliance status
+    - Pie chart of findings by severity
+    - Compliance bar per standard section
+    - Stacked rating breakdown by section
+    - Findings table with Recommended Actions for every gap
+
+    <Warning>
+      The reviewer never modifies your source xlsx. All gaps are captured in the Recommended Actions column of the findings table. Keep both the builder xlsx and the reviewer dashboard as separate artifacts in your project file.
+    </Warning>
+  </Step>
+</Steps>
+
+## Understanding the outputs
+
+<Tabs>
+  <Tab title="Builder output">
+    Builder skills produce multi-tab xlsx workbooks. Every workbook follows consistent conventions across the suite:
+
+    - **Styling**: NAVY header rows, Calibri font, PLr/SIL color coding (green / yellow / orange / red) on safety-integrity cells
+    - **Named tabs**: Tab names are stable and versioned — downstream skills read from them by name, so do not rename tabs
+    - **Live formulas**: Risk number calculations, PLr aggregations, and SIL determinations use Excel formulas so editing an input updates results automatically
+    - **Audit trail**: Each workbook includes a metadata tab with skill version, generation date, and input parameters
+  </Tab>
+  <Tab title="Reviewer output">
+    Reviewer skills produce a visual dashboard as a separate artifact. The dashboard is never embedded in the source xlsx — it is always a standalone output.
+
+    Dashboard sections:
+
+    | Section | What it shows |
+    |---------|--------------|
+    | KPI tiles | Pass / fail / gap counts at a glance |
+    | Pie chart | Findings distribution by severity (critical / major / minor / observation) |
+    | Compliance bar | Per-section compliance percentage against the standard |
+    | Stacked rating breakdown | Section-by-section rating across all criteria |
+    | Findings table | Row per gap, with standard clause reference and Recommended Action |
+
+    Reviewers are independent — you can run a reviewer on any conforming xlsx, including artifacts produced outside the suite.
+  </Tab>
+</Tabs>
+
+## Tips for teams
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
+  <Accordion title="Use the bundle zip for complete cell deliveries">
+    If you are documenting a full robot cell — from risk assessment through Declaration of Conformity — install the entire Foundation cluster at minimum. The chain requires each upstream xlsx to be present before the downstream builder can run. Grabbing the bundle zip and installing the 8 Foundation skills up front prevents mid-project interruptions.
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
+  <Accordion title="Keep xlsx filenames stable across chain runs">
+    Downstream builder skills locate upstream artifacts by filename. Establish a naming convention at the start of a project (for example, `{project-id}-{skill-slug}-rev{n}.xlsx`) and do not rename files between chain runs. Renaming breaks the automatic hand-off.
   </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
+  <Accordion title="Run reviewers before customer milestones">
+    Schedule a reviewer run before every customer review gate — FAT, SAT, or CE audit. The reviewer's findings table doubles as a pre-audit gap list, giving you time to close gaps before the formal review.
+  </Accordion>
+  <Accordion title="Individual skill files for one-off deliverables">
+    Not every project needs the full chain. If you only need a LOTO procedure, a model card, or a wireless coexistence plan, install just those individual skill files. Individual installs do not affect other installed skills.
   </Accordion>
 </AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="The chain" icon="link" href="/the-chain">
+    Learn how builder outputs become inputs to downstream builders, and how changing one upstream value propagates automatically
+  </Card>
+  <Card title="Skill clusters" icon="grid" href="/clusters/foundation">
+    Browse all 10 clusters and find the exact skills for your engineering domain
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

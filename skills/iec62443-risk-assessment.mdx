@@ -1,0 +1,76 @@
+---
+title: "IEC 62443 OT cybersecurity risk assessment builder"
+description: "Generate an IEC 62443-3-2 risk assessment with threat catalog, vulnerability analysis, and Security Level Target (SL-T) per FR1–FR7 foundational requirements."
+---
+
+The `iec62443-risk-assessment-builder` produces an IEC 62443-3-2 industrial cybersecurity risk assessment for an OT/IACS environment. It defines the assessment scope, builds a threat catalog, evaluates vulnerabilities, scores consequences, and determines a Security Level Target (SL-T) for each of the seven Foundational Requirements (FR1–FR7). It is the entry point for the cybersecurity lane, feeding both the OT asset inventory and zone & conduit plan.
+
+<Note>
+**Chain position:** Entry point for the cybersecurity lane. Feeds into `ot-asset-inventory-builder` and `zone-conduit-plan-builder`.
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Run an IEC 62443 risk assessment for [OT system/facility description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | IACS Scope | System boundary, assets in scope, external connections |
+    | Threat Catalog | Threat actor, threat vector, target asset, likelihood |
+    | Vulnerability Assessment | Asset, vulnerability, CVSS base score, exploitability |
+    | Consequence Analysis | Scenario, safety consequence, operational consequence, financial consequence |
+    | Risk Matrix | Likelihood × consequence matrix with risk level (Low/Medium/High/Critical) |
+    | SL-T per FR | Foundational Requirement, Security Level Target (SL1–SL4), justification |
+
+    **Foundational Requirements (FR1–FR7):**
+
+    | FR | Name | SL focus |
+    |----|------|---------|
+    | FR1 | Identification & Authentication Control | Who can access the system |
+    | FR2 | Use Control | What authenticated users can do |
+    | FR3 | System Integrity | Protection from unauthorized modification |
+    | FR4 | Data Confidentiality | Protection of data in transit and at rest |
+    | FR5 | Restricted Data Flow | Network segmentation, zone & conduit |
+    | FR6 | Timely Response to Events | Logging, alerting, incident response |
+    | FR7 | Resource Availability | Resilience against DoS, redundancy |
+
+    **Security Level scale:**
+
+    | SL | Protection target |
+    |----|------------------|
+    | SL 1 | Casual or coincidental violations |
+    | SL 2 | Intentional violation with low resources |
+    | SL 3 | Sophisticated intentional attack with moderate resources |
+    | SL 4 | State-sponsored, highly sophisticated attack |
+  </Tab>
+  <Tab title="Reviewer">
+    The `iec62443-risk-assessment-checklist-reviewer` validates the risk assessment for completeness and SL-T justification.
+
+    **Dashboard components:**
+    - KPI tiles: threat scenario count, FR coverage (7/7), high/critical risk count
+    - Compliance bar: IEC 62443-3-2 clause coverage
+    - Findings table: undocumented threat vectors, unjustified SL-T assignments
+
+    **Checks performed:**
+    - All 7 FRs have an SL-T assignment with documented justification
+    - Threat catalog covers IT/OT convergence threats (lateral movement from IT to OT)
+    - Safety consequence column populated (critical for robotics OT systems)
+    - Vulnerabilities cross-referenced to threat scenarios
+    - Scope boundary clearly defines what is inside and outside the assessment
+    - High and critical risks have documented treatment decisions
+  </Tab>
+</Tabs>
+
+## Standards coverage
+
+| Standard | Relevance |
+|----------|-----------|
+| IEC 62443-3-2:2020 | Security risk assessment for system design — primary standard |
+| IEC 62443-2-1 | Security management system requirements |
+| IEC 62443-3-3 | System security requirements and security levels |
+| NIST SP 800-82 | Guide to ICS security (informative reference) |

@@ -1,0 +1,151 @@
+---
+title: "ISO 15066 biomechanical limits builder and reviewer"
+description: "Generate and review per body-region force and pressure limit tables against ISO/TS 15066:2016 Table A.2 thresholds for cobot collaborative applications."
+---
+
+The ISO/TS 15066 biomechanical limits builder produces a structured xlsx workbook that maps measured contact force and pressure values against the threshold limits defined in ISO/TS 15066:2016 Table A.2 for every relevant body region. It classifies each contact event as quasi-static (clamping) or transient, records a pass/fail determination per region, and forms the foundational safety evidence file that all downstream cobot lane skills — SSM plan, PFL plan, and hand-guiding spec — consume as their authoritative biomechanical input.
+
+<Tabs>
+  <Tab title="Builder">
+    The builder skill ingests a cobot application description (robot model, payload, speed envelope, and workspace geometry) and produces a multi-tab audit-ready xlsx workbook styled in NAVY/Calibri with ISO/TS 15066 color coding.
+
+    **Trigger phrase**
+
+    ```text
+    Build ISO/TS 15066 biomechanical limits for [cobot application]
+    ```
+
+    **Workbook tabs**
+
+    <Steps>
+      <Step title="Body Region Register">
+        One row per body region with anatomical area, contact type classification, and the applicable ISO/TS 15066:2016 Table A.2 threshold for both force (N) and pressure (N/cm²).
+      </Step>
+      <Step title="Measured Values">
+        Recorded contact force and pressure test results per region, measurement methodology reference, and instrument calibration traceability.
+      </Step>
+      <Step title="Pass/Fail Matrix">
+        Side-by-side comparison of measured vs. threshold values with automatic RAG (Red/Amber/Green) status per body region and contact type.
+      </Step>
+      <Step title="Contact Classification">
+        Rationale for quasi-static vs. transient classification per region, including clamping geometry analysis and reachable workspace overlap.
+      </Step>
+    </Steps>
+
+    **Body regions covered**
+
+    <CardGroup cols={2}>
+      <Card title="Head and neck" icon="circle-dot">
+        Highest sensitivity region. Quasi-static threshold: 130 N / 110 N/cm². Transient: 130 N / 110 N/cm².
+      </Card>
+      <Card title="Chest and sternum" icon="heart-pulse">
+        Thoracic region with separate sternum sub-zone. Quasi-static and transient thresholds per Table A.2.
+      </Card>
+      <Card title="Abdomen" icon="person">
+        Soft tissue region with lower quasi-static force tolerance. Critical for overhead cobot paths.
+      </Card>
+      <Card title="Pelvis" icon="person-walking">
+        Bony structure with higher allowable force. Contact type heavily dependent on workspace height.
+      </Card>
+      <Card title="Upper leg and knee" icon="person-running">
+        Knee sub-zone tracked separately due to joint vulnerability and lower quasi-static limit.
+      </Card>
+      <Card title="Lower leg" icon="shoe-prints">
+        Shin and calf regions. Relevant for floor-level AMR-cobot hybrid installations.
+      </Card>
+      <Card title="Upper arm and elbow" icon="hand">
+        Elbow sub-zone tracked separately. Common contact region in side-by-side collaborative tasks.
+      </Card>
+      <Card title="Lower arm and wrist" icon="hand-point-right">
+        High exposure region in hand-guiding and direct collaboration modes.
+      </Card>
+      <Card title="Hand and fingers" icon="hand-sparkles">
+        Finger/thumb tracked as a sub-zone with the most restrictive quasi-static limits in Table A.2.
+      </Card>
+      <Card title="Thumb" icon="thumbs-up">
+        Most restrictive region. Quasi-static threshold: 140 N / 270 N/cm² per ISO/TS 15066 Table A.2.
+      </Card>
+    </CardGroup>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill ingests the builder's xlsx output and produces a confirmation-measures checklist plus a visual dashboard. It never modifies the source artifact — all gaps are recorded in a Recommended Actions table.
+
+    **Dashboard components**
+
+    <CardGroup cols={2}>
+      <Card title="KPI tile: regions assessed" icon="table-cells">
+        Count of body regions with complete measured vs. threshold entries out of 10 required regions.
+      </Card>
+      <Card title="Pass/fail pie chart" icon="chart-pie">
+        Distribution of pass, marginal (within 10% of threshold), and fail results across all body regions.
+      </Card>
+      <Card title="Compliance bar chart" icon="chart-bar">
+        Per-region compliance percentage sorted by margin to threshold, highlighting the tightest constraints.
+      </Card>
+      <Card title="Findings table" icon="triangle-exclamation">
+        Structured list of non-conformances with severity, affected region, and recommended remediation action.
+      </Card>
+    </CardGroup>
+
+    **Reviewer checks**
+
+    <AccordionGroup>
+      <Accordion title="Measurement methodology">
+        Verifies that the measurement method (instrumented end-effector, biofidelic dummy, or force plate) is documented with calibration traceability and that the test configuration replicates the worst-case contact geometry.
+      </Accordion>
+      <Accordion title="Body region completeness">
+        Confirms that all 10 required body regions (including sub-zones for knee, elbow, finger, and thumb) have documented measurements and are not left blank or marked "not applicable" without justification.
+      </Accordion>
+      <Accordion title="Threshold value accuracy">
+        Cross-references each recorded threshold against ISO/TS 15066:2016 Table A.2. Flags any transposition errors between force (N) and pressure (N/cm²) columns or between quasi-static and transient rows.
+      </Accordion>
+      <Accordion title="Contact type classification">
+        Checks that the quasi-static vs. transient classification is supported by workspace geometry evidence (clamping point analysis, reachable zone map) and is not defaulted to the less restrictive class without justification.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+<Note>
+  **Chain position — entry point for the cobot lane.**
+  This skill has no upstream skill dependencies; it is the first node in the cobot lane. Its xlsx output is consumed by:
+  - [`ssm-plan`](/skills/ssm-plan) — Speed and Separation Monitoring plan
+  - [`pfl-plan`](/skills/pfl-plan) — Power and Force Limiting plan
+  - [`cobot-hand-guiding`](/skills/cobot-hand-guiding) — Hand-guiding device specification
+</Note>
+
+## Standard reference
+
+**ISO/TS 15066:2016** — *Robots and robotic devices — Collaborative robots*
+
+Section 5.4 (Power and Force Limiting) and Annex A (Table A.2) define the biomechanical basis for all cobot safety modes. Table A.2 specifies allowable force and pressure limits for 29 body regions under two contact type regimes.
+
+<Info>
+  ISO/TS 15066 is a Technical Specification, not a full International Standard. It is referenced normatively by ISO 10218-2:2025 for collaborative operation requirements. Compliance with Table A.2 values is the primary means of demonstrating that PFL safeguarding meets the safety requirements of the standard.
+</Info>
+
+## Contact type classification rules
+
+| Contact type | Definition | Key threshold distinction |
+|---|---|---|
+| Transient | Short-duration impact; robot and human surfaces separate immediately after contact | Higher allowable force; duration < 0.5 s |
+| Quasi-static | Clamping contact; human body part trapped between robot and fixed structure | Lower allowable force; applies full clamping load |
+
+<Warning>
+  When workspace geometry allows a human body part to be clamped between the robot and a fixed surface (fixture, table edge, frame), the quasi-static threshold — which is more restrictive — **must** be used for that body region regardless of intended contact duration.
+</Warning>
+
+## Instrument setup guidance
+
+```text
+Recommended instrumentation stack:
+1. Biofidelic force measurement device (e.g., Pilz Prism or equivalent)
+2. Calibrated force/pressure sensor matched to body region geometry
+3. Data logger at ≥ 1 kHz sample rate
+4. Robot programmed to execute worst-case speed and approach angle
+5. Three repeat measurements per region; use maximum recorded value
+```
+
+<Tip>
+  Run measurements at the maximum programmed speed and the minimum configured separation distance to capture the true worst-case contact energy. Values recorded at reduced test speeds do not satisfy the measurement methodology requirement.
+</Tip>

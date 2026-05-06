@@ -1,0 +1,128 @@
+---
+title: "AI model card builder and reviewer (Mitchell et al.)"
+description: "Generate a Mitchell et al. model card with intended use, per-slice fairness metrics, and performance measures for AI models used in robotics applications."
+---
+
+The model card skill pair produces an audit-ready xlsx workbook following the Model Cards for Model Reporting framework introduced by Mitchell et al. and referenced by ISO/IEC 5469 (Artificial intelligence — Functional safety and AI systems). The builder documents the model's design, its intended and out-of-scope uses, the factors relevant to model performance (including instrumentation variables such as camera type or lighting rig), the performance metrics and decision thresholds chosen, approaches to uncertainty quantification, and — critically — disaggregated evaluation results broken down by relevant subgroups. In robotics perception, these per-slice evaluations might stratify performance by lighting condition, object type, surface reflectivity, or operating environment, revealing failures that aggregate metrics conceal. The model card consumes the upstream dataset datasheet for training data provenance and feeds into the perception test catalog.
+
+<Note>
+**Chain position:** This skill consumes output from:
+- [`dataset-documentation`](/skills/dataset-documentation) — dataset datasheet referenced for training data provenance and composition
+
+Its output feeds into:
+- [`perception-test-catalog`](/skills/perception-test-catalog) — perception test catalog that uses per-slice findings to design targeted test scenarios
+</Note>
+
+## Trigger phrase
+
+```text
+Create a model card for [AI/ML model]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder produces a multi-tab xlsx workbook styled in NAVY/Calibri. Each tab corresponds to a section of the Mitchell et al. Model Cards framework, with the per-slice evaluation tab given prominence as the most technically critical section for safety-relevant deployments.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="Model details" icon="id-card">
+        Model name, version, type (classification, detection, segmentation, regression), architecture summary, training framework, release date, and point-of-contact for questions.
+      </Card>
+      <Card title="Intended use" icon="bullseye">
+        Primary intended uses (with specific robot type, environment, and task), out-of-scope uses, and any use cases where deployment is explicitly prohibited or requires additional validation.
+      </Card>
+      <Card title="Factors" icon="sliders">
+        Relevant factors that affect model performance: instrumentation variables (camera model, lens, resolution), environmental factors (lighting, temperature, dust), and demographic or object subgroup factors.
+      </Card>
+      <Card title="Metrics and thresholds" icon="chart-line">
+        Performance measures (mAP, precision, recall, F1, latency), the decision threshold chosen and its justification, and the approach to uncertainty quantification (confidence calibration, conformal prediction).
+      </Card>
+      <Card title="Per-slice evaluation" icon="table-cells">
+        Disaggregated evaluation results stratified by every factor listed in the Factors tab: performance metric values per subgroup, sample count per subgroup, and highlighted performance gaps relative to aggregate performance.
+      </Card>
+      <Card title="Recommendations and caveats" icon="triangle-exclamation">
+        Deployment recommendations, known limitations, conditions under which the model should not be deployed without additional safeguards, and suggested monitoring metrics for production.
+      </Card>
+    </CardGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Ingest dataset documentation">
+        Read the upstream dataset datasheet to extract training data composition, class distribution, collection environments, and any documented restrictions that should propagate to the model card's intended use section.
+      </Step>
+      <Step title="Populate model details and intended use">
+        Document the model's architecture, training configuration, version, and intended deployment context, carrying forward any inappropriate use restrictions from the dataset datasheet.
+      </Step>
+      <Step title="Enumerate relevant factors">
+        Identify instrumentation variables, environmental factors, and subgroup factors that are expected or known to influence model performance, drawing on the dataset's collection conditions.
+      </Step>
+      <Step title="Define metrics and thresholds">
+        State the primary performance metric, the decision threshold with justification (e.g., recall ≥ 0.95 for safety-critical detection), and the uncertainty quantification method used.
+      </Step>
+      <Step title="Generate per-slice evaluation template">
+        Produce a pre-formatted disaggregated evaluation table with one row per subgroup, columns for metric value and sample count, and automatic calculation of the performance gap versus aggregate performance.
+      </Step>
+      <Step title="Document recommendations and caveats">
+        Synthesise limitations identified in the per-slice evaluation into deployment recommendations and state any conditions requiring additional safeguards before production use.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill consumes the builder's xlsx output without modifying it. It checks per-slice evaluation completeness, metric selection appropriateness, and intended use restriction adequacy, then produces a visual dashboard.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="KPI tiles" icon="gauge-high">
+        Section completion rate, subgroup count in per-slice evaluation, performance gaps identified count, and out-of-scope use entries count.
+      </Card>
+      <Card title="Per-slice performance chart" icon="chart-bar">
+        Bar chart of the primary metric value for each subgroup alongside the aggregate performance, with a reference line at the aggregate value to visually highlight underperforming subgroups.
+      </Card>
+      <Card title="Factor coverage matrix" icon="table-cells">
+        Matrix of factors versus evaluation subgroups showing which factor combinations have been evaluated and which are untested, guiding downstream perception test scenario design.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings listing section name, finding type (missing subgroup / metric not calibrated / no decision threshold justification / no out-of-scope use), and recommended corrective action.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="Per-slice evaluation completeness">
+        Verifies that the per-slice evaluation covers every factor listed in the Factors tab, that each subgroup row contains an actual metric value (not a placeholder), and that sample counts are reported alongside metric values to allow statistical interpretation.
+      </Accordion>
+      <Accordion title="Metric selection appropriateness">
+        Checks that the chosen primary metric is appropriate for the task type (e.g., recall rather than accuracy for safety-critical detection tasks where false negatives are the primary risk) and that the decision threshold is justified with reference to the safety requirement.
+      </Accordion>
+      <Accordion title="Intended use restriction completeness">
+        Validates that the intended use section explicitly documents out-of-scope uses and that any restrictions inherited from the dataset datasheet are carried forward without weakening.
+      </Accordion>
+      <Accordion title="Uncertainty quantification">
+        Confirms that the model card addresses uncertainty quantification — whether through confidence calibration metrics, conformal prediction coverage guarantees, or Monte Carlo dropout — and that the approach is documented sufficiently for a safety reviewer to assess it.
+      </Accordion>
+    </AccordionGroup>
+
+    <Warning>
+      Any subgroup in the per-slice evaluation with a sample count below 30 will be flagged as statistically unreliable. The downstream perception test catalog reviewer will require targeted test scenario generation for all low-sample subgroups before accepting the test catalog as complete.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Standards and references
+
+| Reference | Section | Topic |
+|---|---|---|
+| Mitchell et al. (2019) | Full paper | Model Cards for Model Reporting framework |
+| ISO/IEC 5469:2024 | §6 | AI model documentation requirements for safety systems |
+| ISO/IEC 5469:2024 | §8 | Verification and validation of AI models |
+| ISO/IEC 42001:2023 | §8.5 | AI system performance monitoring requirements |
+
+<Tip>
+Populate the per-slice evaluation before the model goes into production testing, not after. Performance gaps identified early can be addressed through targeted data collection or retraining; gaps discovered after production deployment require a model update cycle that may halt operations.
+</Tip>

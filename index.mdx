@@ -1,133 +1,93 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
-icon: 'star'
+title: "Robotics Skills Suite: 76 audit-ready Claude skills"
+description: "76 Claude skills automating industrial robot, cobot, AMR, ROS2, V&V, AI/ML, and IEC 62443 lifecycle documentation as 38 builder + reviewer pairs."
 ---
 
-## Setting up
+The Robotics Skills Suite is a curated set of 76 Claude skills — 38 builders and 38 matching reviewers — that automate every structured xlsx deliverable in the modern industrial-robotics lifecycle. From ISO 12100 risk assessment through IEC 62443 cybersecurity, every phase has a builder that produces an audit-ready xlsx workbook and a reviewer that confirms it against standards.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Install your first skill and generate a compliant artifact in minutes
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="The Chain" icon="link" href="/the-chain">
+    Understand how skills hand off via stable xlsx contracts
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Skill Clusters" icon="grid" href="/clusters/foundation">
+    Browse all 10 skill clusters covering the full robotics lifecycle
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Skills Reference" icon="book" href="/skills/iso12100-risk-assessment">
+    Full reference for every builder and reviewer skill
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What the suite covers
 
-Everything you need to create world-class documentation.
+The suite spans ten engineering domains — every phase where structured documentation is required:
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+<CardGroup cols={2}>
+  <Card title="Foundation & Compliance" icon="shield-check" href="/clusters/foundation">
+    ISO 12100 risk assessment, machinery safety lifecycle, robot cell scope, PLr/SIL determination, CE marking
   </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
+  <Card title="Collaborative Robots" icon="robot" href="/clusters/cobot">
+    ISO/TS 15066 biomechanical limits, Speed & Separation Monitoring, Power & Force Limiting, hand-guiding
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
+  <Card title="Autonomous Mobile Robots" icon="truck" href="/clusters/amr-mobile">
+    ISO 3691-4 risk, operating envelope, fleet manager architecture, wireless coexistence planning
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+  <Card title="Cell Design" icon="diagram-project" href="/clusters/cell-design">
+    Cell layout, EOAT spec, safety I/O matrix, interlock and E-stop architecture
   </Card>
-</Columns>
+  <Card title="Operations & Training" icon="clipboard" href="/clusters/operational">
+    SOP, OSHA 1910.147 LOTO, operator training qualification matrix
+  </Card>
+  <Card title="ROS2 Architecture" icon="code" href="/clusters/ros2">
+    System architecture, URDF, behavior trees, Nav2 config, TF tree per REP 105/103
+  </Card>
+  <Card title="Verification & Validation" icon="flask" href="/clusters/vv">
+    ISO 9283 performance, FAT/SAT acceptance, HIL test catalog, field acceptance
+  </Card>
+  <Card title="AI/ML Governance" icon="brain" href="/clusters/aiml-governance">
+    Datasheets for datasets, model cards, perception test catalogs
+  </Card>
+  <Card title="Industrial Cybersecurity" icon="lock" href="/clusters/cybersecurity">
+    IEC 62443-3-2 risk assessment, OT asset inventory, zone and conduit plan
+  </Card>
+  <Card title="Standards Reference" icon="book-open" href="/reference/standards">
+    All covered standards: ISO, IEC, ANSI/RIA, OSHA, REP, and more
+  </Card>
+</CardGroup>
 
-## Make your content agent ready
+## How it works
 
-Make your docs work for humans and AI agents alike.
+<Steps>
+  <Step title="Download a skill">
+    Download individual `.skill` files from the `skills/` directory on GitHub, or grab `robotics-skills-suite-bundle-76.zip` for all 76 at once.
+  </Step>
+  <Step title="Install in Claude">
+    Click **Save skill** in Claude Desktop or Cowork to install the `.skill` file. Each skill declares its triggering description in its frontmatter.
+  </Step>
+  <Step title="Trigger with natural language">
+    Ask Claude to run the skill using natural language. For example: *"Run an ISO 12100 risk assessment on a new cobot palletizing cell."*
+  </Step>
+  <Step title="Receive audit-ready xlsx output">
+    The builder skill produces a multi-tab xlsx workbook. Run the matching reviewer skill to get a visual dashboard with KPI tiles, compliance charts, and findings.
+  </Step>
+</Steps>
 
-<Columns cols={2}>
-  <Card
-    title="Prompt component"
-    icon="robot"
-    href="/agent-ready/prompt"
-  >
-    Embed shareable AI prompts readers can copy or open in Cursor.
-  </Card>
-  <Card
-    title="Visibility"
-    icon="eye"
-    href="/agent-ready/visibility"
-  >
-    Show different content to humans and agents reading your docs.
-  </Card>
-  <Card
-    title="Contextual menu"
-    icon="bolt"
-    href="/agent-ready/contextual"
-  >
-    Give readers one-click access to Claude, ChatGPT, Cursor, and more.
-  </Card>
-  <Card
-    title="AI coding tools"
-    icon="wand-magic-sparkles"
-    href="/ai-tools/claude-code"
-  >
-    Set up Claude Code, Cursor, or Windsurf with Mintlify's skill.
-  </Card>
-</Columns>
+## The builder + reviewer pattern
 
-## Need inspiration?
+Every deliverable in the suite follows the same pattern: a **builder** skill produces a structured xlsx artifact, and a **reviewer** skill runs a confirmation-measures checklist against it. Reviewer outputs include a visual dashboard with KPI tiles, a pie chart, a compliance bar, a stacked rating breakdown by section, and a findings table with recommended actions.
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Note>
+  Skills hand off via stable xlsx contracts. A change upstream — for example, updating a hazard severity in the ISO 12100 Risk Assessment — automatically flows to every downstream skill that consumes it: PLr determination, compliance matrix, and Declaration of Conformity.
+</Note>
+
+## Who this is for
+
+- **Robot integrators** producing ISO 10218-2 / ANSI R15.06 compliance documentation for every cell delivery
+- **OEM machine builders** generating CE marking and ANSI safety files at scale
+- **Cobot deployers** running ISO/TS 15066 biomechanical validation, SSM, and PFL plans
+- **AMR/AGV operators** executing ISO 3691-4 risk assessments and fleet manager architectures
+- **ROS2 development teams** producing system architecture, URDF, behavior tree, Nav2, and TF spec documents
+- **OT cybersecurity teams** running IEC 62443-3-2 risk assessments and zone and conduit segmentation
+- **AI/ML in robotics teams** producing datasheets for datasets, model cards, and perception test catalogs

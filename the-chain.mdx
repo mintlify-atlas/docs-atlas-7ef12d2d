@@ -1,0 +1,265 @@
+---
+title: "The skill chain: how artifacts flow between skills"
+description: "How builder xlsx outputs become inputs to downstream builders across the Foundation, Cobot, AMR, Cell+Ops, ROS2, V&V, AI/ML, and Cybersecurity lanes."
+---
+
+The chain is the core architectural feature of the Robotics Skills Suite. Every builder skill produces an xlsx workbook with named, versioned tabs. Downstream builders read from those named tabs as their inputs — meaning a change to a value in an upstream workbook automatically propagates to every skill that consumes it, without any manual copy-paste. This is what makes the suite more than a collection of templates: each phase is a node in a directed graph of structured file contracts, and the graph enforces data consistency across the entire project lifecycle.
+
+## How the chain works
+
+When you run a builder skill, it writes its output to a named xlsx file. Each tab in that file has a stable name — for example, `RiskRegister` or `PLr_Determination`. Downstream builder skills are configured to read from those specific tab names. If you update a hazard severity in the ISO 12100 Risk Assessment's `RiskRegister` tab, then re-run the ISO 13849-1 PLr builder, it reads the updated severity and recomputes the required Performance Level. Run the ISO 10218-1/2 Compliance Matrix builder next and it reads the new PLr value. Run the Declaration of Conformity builder last and it pulls from the compliance matrix.
+
+<Note>
+  Tab names in builder xlsx outputs are stable contracts. Do not rename, delete, or reorder tabs in a builder output. Downstream skills locate data by tab name, not by tab position. Renaming a tab will cause downstream builders to fail to read the expected data.
+</Note>
+
+## Chain execution order
+
+<Steps>
+  <Step title="Run the Foundation chain first">
+    Always start with the ISO 12100 Risk Assessment. It is the root of the main chain and the source of hazard severity, frequency, and avoidability values that every downstream safety skill consumes.
+
+    ```text
+    ISO 12100 Risk Assessment
+    → Machinery Safety Lifecycle Plan
+    → Robot Cell Scope
+    → ISO 13849-1 PLr / IEC 62061 SIL
+    → ISO 10218-1/2 Compliance Matrix
+    → Declaration of Conformity (CE)
+    ```
+  </Step>
+  <Step title="Branch into robot-type lanes">
+    After the Foundation chain, branch into the lane that matches your robot type. Cobot, AMR, and Cell+Ops lanes each read from the Foundation xlsx outputs.
+  </Step>
+  <Step title="Run software and V&V lanes in parallel">
+    The ROS2, V&V, AI/ML, and Cybersecurity lanes are largely independent of each other. Once the Foundation chain is complete, these lanes can run in parallel.
+  </Step>
+  <Step title="Run reviewer skills at each milestone">
+    After completing a lane or reaching a customer review gate, run the reviewer skill for each builder output. Reviewer dashboards are independent artifacts — they do not affect the xlsx contracts or downstream chain execution.
+  </Step>
+</Steps>
+
+## All chain lanes
+
+The full chain spans eight lanes. The Foundation lane is the trunk; the other seven are branches that extend from it or run independently.
+
+```text
+┌─────────────────────────────── FOUNDATION LANE ──────────────────────────────┐
+│                                                                                │
+│  ISO 12100 Risk Assessment ──► Machinery Safety Lifecycle Plan                 │
+│          │                              │                                      │
+│          │                              ▼                                      │
+│          │                     Robot Cell Scope                                │
+│          │                              │                                      │
+│          ▼                              ▼                                      │
+│  ISO 13849-1 PLr / IEC 62061 SIL determination                                │
+│                          │                                                     │
+│                          ▼                                                     │
+│          ISO 10218-1/2 (or ANSI R15.06) Compliance Matrix                     │
+│                          │                                                     │
+│                          ▼                                                     │
+│                 Declaration of Conformity (CE)                                 │
+└────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────── COBOT LANE ──────────────────────────┐
+│                                                               │
+│  ISO/TS 15066 Biomechanical Limits                            │
+│          │                                                    │
+│          ├──► SSM Plan (Speed & Separation Monitoring)        │
+│          ├──► PFL Plan (Power & Force Limiting)               │
+│          └──► Hand-Guiding Specification                      │
+└───────────────────────────────────────────────────────────────┘
+
+┌───────────────────────── AMR LANE ───────────────────────────┐
+│                                                               │
+│  ISO 3691-4 Risk Assessment                                   │
+│          │                                                    │
+│          ▼                                                    │
+│  Operating Envelope (hazard zone map)                         │
+│          │                                                    │
+│          ├──► Fleet Manager Architecture (VDA 5050)           │
+│          └──► Wireless Coexistence Plan                       │
+└───────────────────────────────────────────────────────────────┘
+
+┌───────────────────── CELL + OPS LANE ────────────────────────┐
+│                                                               │
+│  Cell Layout ──► EOAT Spec ──► Safety I/O Matrix             │
+│                                       │                      │
+│                                       ▼                      │
+│                          Interlock + E-Stop Architecture      │
+│                                       │                      │
+│                          ┌────────────┼────────────┐         │
+│                          ▼            ▼            ▼         │
+│                         SOP          LOTO    Operator         │
+│                                             Training         │
+└───────────────────────────────────────────────────────────────┘
+
+┌──────────────────────── ROS2 LANE ───────────────────────────┐
+│                                                               │
+│  ROS2 System Architecture                                     │
+│          │                                                    │
+│          ├──► URDF / xacro Spec                               │
+│          ├──► Behavior Tree Spec (BehaviorTree.CPP)           │
+│          ├──► Nav2 Config (costmap, planner, recovery)        │
+│          └──► TF Tree Spec (REP 105 / REP 103)                │
+└───────────────────────────────────────────────────────────────┘
+
+┌────────────────────────── V&V LANE ──────────────────────────┐
+│                                                               │
+│  ISO 9283 Performance Test                                    │
+│          │                                                    │
+│          ▼                                                    │
+│  Acceptance Protocol (FAT / SAT)                             │
+│          │                                                    │
+│          ├──► HIL Test Catalog                                │
+│          └──► Field Acceptance (OEE-based)                   │
+└───────────────────────────────────────────────────────────────┘
+
+┌──────────────────── AI/ML GOVERNANCE LANE ───────────────────┐
+│                                                               │
+│  Dataset Documentation (Gebru et al.)                         │
+│          │                                                    │
+│          ▼                                                    │
+│  Model Card (Mitchell et al., per-slice fairness)            │
+│          │                                                    │
+│          ▼                                                    │
+│  Perception Test Catalog (edge cases, FP/FN, adversarial)    │
+└───────────────────────────────────────────────────────────────┘
+
+┌─────────────────── CYBERSECURITY LANE ───────────────────────┐
+│                                                               │
+│  IEC 62443 Risk Assessment (SL-T per FR1–FR7)                │
+│          │                                                    │
+│          ▼                                                    │
+│  OT Asset Inventory (firmware + patch status)                │
+│          │                                                    │
+│          ▼                                                    │
+│  Zone & Conduit Plan (protocol allowlists)                   │
+└───────────────────────────────────────────────────────────────┘
+```
+
+## Lane reference
+
+<AccordionGroup>
+  <Accordion title="Foundation lane — 8 pairs" icon="shield-check">
+    The Foundation lane is the trunk of the entire chain. It starts with ISO 12100 risk assessment and ends with the Declaration of Conformity, with PLr/SIL determination and the compliance matrix as the two critical intermediate nodes.
+
+    | Builder skill | Standard | Reads from |
+    |--------------|----------|------------|
+    | `iso12100-risk-assessment-builder` | ISO 12100:2010 | — (root) |
+    | `machinery-safety-lifecycle-plan-builder` | ISO 13849-1 / IEC 62061 | ISO 12100 xlsx |
+    | `robot-cell-scope-builder` | ISO 10218-2, ANSI R15.06 | ISO 12100 xlsx |
+    | `iso13849-plr-builder` | ISO 13849-1:2023 | ISO 12100 xlsx |
+    | `iec62061-sil-builder` | IEC 62061:2021 | ISO 12100 xlsx |
+    | `iso10218-compliance-matrix-builder` | ISO 10218-1/-2:2025 | PLr xlsx |
+    | `ansi-r1506-compliance-matrix-builder` | ANSI/RIA R15.06-2012 R2017 | PLr xlsx |
+    | `declaration-of-conformity-builder` | EU Machinery Reg 2023/1230 | Compliance matrix xlsx |
+  </Accordion>
+  <Accordion title="Cobot lane — 4 pairs" icon="robot">
+    The Cobot lane branches from the ISO 12100 Risk Assessment. The ISO/TS 15066 Biomechanical Limits workbook is the root of this lane — it establishes the per-body-region force and pressure limits that SSM, PFL, and hand-guiding plans all reference.
+
+    | Builder skill | Standard | Reads from |
+    |--------------|----------|------------|
+    | `iso15066-biomechanical-limits-builder` | ISO/TS 15066:2016 | ISO 12100 xlsx |
+    | `ssm-plan-builder` | ISO/TS 15066, ISO 13849-1 | Biomechanical limits xlsx |
+    | `pfl-plan-builder` | ISO/TS 15066 | Biomechanical limits xlsx |
+    | `cobot-hand-guiding-builder` | ISO 10218-1, ISO/TS 15066 | Biomechanical limits xlsx |
+  </Accordion>
+  <Accordion title="AMR lane — 4 pairs" icon="truck">
+    The AMR lane starts with the ISO 3691-4 Risk Assessment, which produces the hazard register that feeds the Operating Envelope. Fleet Manager Architecture and Wireless Coexistence Plan both branch from the Operating Envelope.
+
+    | Builder skill | Standard | Reads from |
+    |--------------|----------|------------|
+    | `iso3691-4-risk-assessment-builder` | ISO 3691-4:2020 | — |
+    | `operating-envelope-builder` | ISO 3691-4, ANSI/RIA R15.08 | ISO 3691-4 xlsx |
+    | `fleet-manager-architecture-builder` | ANSI/RIA R15.08, VDA 5050 | Operating envelope xlsx |
+    | `wireless-coexistence-plan-builder` | IEC 62443, IEEE 802.11 | Operating envelope xlsx |
+  </Accordion>
+  <Accordion title="Cell + Ops lane — 7 pairs" icon="diagram-project">
+    The Cell + Ops lane covers physical cell design and operational procedures. Cell Layout feeds EOAT Spec, which feeds the Safety I/O Matrix. From the Safety I/O Matrix, the Interlock + E-Stop Architecture branches, and from there the SOP, LOTO, and Operator Training Matrix all read.
+
+    | Builder skill | Standard | Reads from |
+    |--------------|----------|------------|
+    | `robot-cell-layout-builder` | ISO 10218-2, ANSI R15.06 | ISO 12100 xlsx |
+    | `eoat-spec-builder` | ISO 10218-1 | Cell layout xlsx |
+    | `safety-io-matrix-builder` | IEC 62061, ISO 13849-1 | EOAT spec xlsx |
+    | `interlock-estop-architecture-builder` | ISO 13849-1, IEC 62061 | Safety I/O matrix xlsx |
+    | `robot-sop-builder` | ISO 10218-2, OSHA 1910.212 | Interlock xlsx |
+    | `loto-procedure-builder` | OSHA 1910.147 | Interlock xlsx |
+    | `operator-training-matrix-builder` | ISO 10218-2 | SOP xlsx |
+  </Accordion>
+  <Accordion title="ROS2 lane — 5 pairs" icon="code">
+    The ROS2 lane is anchored by the ROS2 System Architecture workbook, which documents nodes, topics, services, actions, lifecycle states, and DDS QoS settings. All four downstream skills read from it.
+
+    | Builder skill | Standard / Spec | Reads from |
+    |--------------|----------------|------------|
+    | `ros2-system-architecture-builder` | ROS 2 Humble/Iron/Jazzy | — |
+    | `urdf-model-spec-builder` | URDF/xacro | System architecture xlsx |
+    | `behavior-tree-spec-builder` | BehaviorTree.CPP | System architecture xlsx |
+    | `nav2-config-builder` | Nav2, REP 105 | System architecture xlsx |
+    | `tf-tree-spec-builder` | REP 105, REP 103 | System architecture xlsx |
+  </Accordion>
+  <Accordion title="V&V lane — 4 pairs" icon="flask">
+    The V&V lane runs from ISO 9283 performance characterization through FAT/SAT acceptance, HIL testing, and final field acceptance. ISO 9283 is the root — it establishes the pass/fail criteria that the acceptance protocol enforces.
+
+    | Builder skill | Standard | Reads from |
+    |--------------|----------|------------|
+    | `iso9283-performance-test-builder` | ISO 9283:1998 | — |
+    | `robot-acceptance-protocol-builder` | ISO 9283, ISO 10218-2 | ISO 9283 xlsx |
+    | `robot-hil-test-catalog-builder` | IEC 62061, ISO 13849-1 | Acceptance protocol xlsx |
+    | `robot-field-acceptance-builder` | ISO 10218-2 | Acceptance protocol xlsx |
+  </Accordion>
+  <Accordion title="AI/ML Governance lane — 3 pairs" icon="brain">
+    The AI/ML Governance lane is largely independent of the hardware safety chains. Dataset Documentation is the root; the Model Card reads from it, and the Perception Test Catalog reads from the Model Card.
+
+    | Builder skill | Framework | Reads from |
+    |--------------|-----------|------------|
+    | `dataset-documentation-builder` | Gebru et al. Datasheets for Datasets | — |
+    | `model-card-builder` | Mitchell et al. Model Cards | Dataset documentation xlsx |
+    | `perception-test-catalog-builder` | ISO/IEC 5469, internal | Model card xlsx |
+  </Accordion>
+  <Accordion title="Cybersecurity lane — 3 pairs" icon="lock">
+    The Cybersecurity lane follows the IEC 62443 workflow. The risk assessment establishes Security Level Targets per functional requirement; the asset inventory and zone plan both consume those SL-T values.
+
+    | Builder skill | Standard | Reads from |
+    |--------------|----------|------------|
+    | `iec62443-risk-assessment-builder` | IEC 62443-3-2 | — |
+    | `ot-asset-inventory-builder` | IEC 62443-2-1 | IEC 62443 xlsx |
+    | `zone-conduit-plan-builder` | IEC 62443-3-3 | IEC 62443 xlsx |
+  </Accordion>
+</AccordionGroup>
+
+## How upstream changes propagate
+
+The chain propagates changes automatically because downstream builders read from named tabs at execution time — not at install time. Here is how a typical upstream change flows:
+
+<Steps>
+  <Step title="Edit the upstream xlsx">
+    Open the ISO 12100 Risk Assessment workbook. Change a hazard severity from S1 (slight injury) to S2 (serious injury) for the pinch-point hazard on the cell entry.
+  </Step>
+  <Step title="Re-run the affected downstream builder">
+    Trigger the ISO 13849-1 PLr builder, pointing it at the updated ISO 12100 xlsx. The builder reads the new severity value from the `RiskRegister` tab and recomputes the required Performance Level — in this case, the pinch-point function may move from PLc to PLd.
+  </Step>
+  <Step title="Cascade through the remaining chain">
+    Re-run the ISO 10218-1/2 Compliance Matrix builder. It reads the new PLd requirement from the PLr workbook and flags any safety functions that were previously specified to only PLc as non-compliant. Re-run the Declaration of Conformity builder last to update the CE file.
+  </Step>
+  <Step title="Run reviewers to confirm">
+    Run the reviewer skill for each updated workbook. The reviewer dashboards will show the updated compliance status and surface any new gaps introduced by the changed requirement.
+  </Step>
+</Steps>
+
+<Info>
+  You only need to re-run the skills that are downstream of the change. Skills upstream of the change are unaffected. If you change only the PLr xlsx — for example, to update an architecture decision — you only need to re-run the Compliance Matrix and Declaration of Conformity builders.
+</Info>
+
+## Stable xlsx contracts
+
+The chain depends on tab names remaining stable. The suite enforces the following conventions across all builder outputs:
+
+- Tab names use `PascalCase` with no spaces — for example, `RiskRegister`, `PLr_Determination`, `ComplianceMatrix`
+- The `Metadata` tab is always present and always the last tab; it records skill version, generation timestamp, and input parameters
+- Downstream builders read data ranges by named tab and named column header, not by cell address — column reordering within a tab is safe, but column renaming is not
+
+<Warning>
+  Never rename, delete, or merge tabs in a builder xlsx output. If you need to add notes or annotations, use a separate tab prefixed with `Notes_` — the convention signals to downstream builders that the tab is not a contract tab and can be safely ignored.
+</Warning>

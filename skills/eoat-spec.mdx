@@ -1,0 +1,137 @@
+---
+title: "End-of-arm tooling specification builder and reviewer"
+description: "Specify robot EOAT covering gripping mechanism, payload, TCP definition, sensor integration, and fail-safe behavior per ISO 10218-2 and ISO 9283."
+---
+
+The end-of-arm tooling (EOAT) specification builder produces a structured xlsx workbook that fully characterizes the tooling mounted at the robot flange — including gripping mechanism type, maximum gripping force, complete payload budget (object mass plus tool mass), tool center point (TCP) definition, sensor integration (presence detection and force/torque monitoring), and gripper fail-safe behavior on power loss. The specification is dimensionally traceable to the robot's rated payload and wrist torque limits per ISO 9283, and it feeds directly into the safety I/O matrix where gripper sensor signals become safety-relevant F-DI inputs.
+
+<Tabs>
+  <Tab title="Builder">
+    The builder skill ingests a robot and application description (robot model, rated payload, part geometry, and process requirements) and produces a multi-tab audit-ready xlsx workbook styled in NAVY/Calibri with ISO 9283 performance color coding.
+
+    **Trigger phrase**
+
+    ```text
+    Specify the EOAT for [robot/application]
+    ```
+
+    **Workbook tabs**
+
+    <Steps>
+      <Step title="Mechanism Summary">
+        Gripping mechanism type (pneumatic parallel gripper, electric servo gripper, vacuum cup array, magnetic, or custom), actuator manufacturer and model, maximum jaw stroke, maximum gripping force at rated pressure or current, and IP rating.
+      </Step>
+      <Step title="Payload Budget">
+        Itemized payload calculation table: part mass (kg), tool body mass (kg), sensor/cable mass (kg), and total TCP payload (kg) compared against the robot's rated payload at the programmed reach. Includes wrist torque and moment arm calculations.
+      </Step>
+      <Step title="TCP Definition">
+        TCP frame origin coordinates (X, Y, Z) and orientation (Rx, Ry, Rz) relative to the robot flange in the robot's native coordinate convention. Documents the measurement method (CAD, teach pendant probing, or laser tracker).
+      </Step>
+      <Step title="Sensor Integration">
+        Signal table for every sensor mounted on or in the EOAT: sensor type (presence, force/torque, vision, proximity), manufacturer, output signal type (digital/analog/fieldbus), wiring route, and connection point on the robot cable management system.
+      </Step>
+      <Step title="Fail-Safe Behavior">
+        Per-actuator fail-safe state on power loss (pneumatic spring-to-open, spring-to-close, or held by mechanical lock; electric servo hold or release). Documents the justification for the selected fail-safe state relative to the part geometry and drop zone hazard analysis.
+      </Step>
+    </Steps>
+
+    **EOAT component areas**
+
+    <CardGroup cols={2}>
+      <Card title="Gripping mechanism" icon="hand">
+        Mechanism type, actuation technology, stroke, and maximum gripping force. Includes duty cycle rating and expected maintenance interval (number of cycles before service).
+      </Card>
+      <Card title="Payload and inertia" icon="weight-hanging">
+        Full TCP payload budget compared against robot rated payload at the maximum programmed reach. Includes center-of-mass offset and resulting wrist moment load calculation.
+      </Card>
+      <Card title="Tool center point" icon="crosshairs">
+        TCP frame definition with measurement traceability. Correctly defined TCPs are required for accurate path execution and force/torque sensor zeroing.
+      </Card>
+      <Card title="Presence and force sensing" icon="sensor">
+        Part-present detection (I/O signal to PLC), force/torque monitoring range and resolution, and integration with the robot controller safety-rated I/O for gripper fault detection.
+      </Card>
+    </CardGroup>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill ingests the builder's xlsx output and produces a confirmation-measures checklist plus a visual dashboard. It never modifies the source artifact — all gaps are recorded in a Recommended Actions table.
+
+    **Dashboard components**
+
+    <CardGroup cols={2}>
+      <Card title="KPI tile: payload margin" icon="gauge">
+        Calculated TCP payload as a percentage of the robot's rated payload at the specified reach. Flags if the margin falls below a 15% safety buffer.
+      </Card>
+      <Card title="Sensor signal coverage chart" icon="chart-bar">
+        Count of EOAT sensors with fully documented signal paths vs. total sensors listed, broken down by signal type (digital I/O, analog, fieldbus).
+      </Card>
+      <Card title="Fail-safe compliance tile" icon="shield-check">
+        Pass/fail status for each actuator's fail-safe justification: confirms that the chosen fail-safe state (open or close on power loss) is supported by a documented hazard rationale.
+      </Card>
+      <Card title="Findings table" icon="triangle-exclamation">
+        Structured list of specification gaps with severity, affected EOAT component, and recommended corrective action.
+      </Card>
+    </CardGroup>
+
+    **Reviewer checks**
+
+    <AccordionGroup>
+      <Accordion title="Payload within robot capacity">
+        Recalculates the total TCP payload from the itemized budget and confirms it does not exceed the robot manufacturer's rated payload at the maximum programmed reach. Separately checks that the wrist moment load (mass × center-of-mass offset) does not exceed the robot flange moment rating.
+      </Accordion>
+      <Accordion title="Fail-safe behavior specification">
+        Verifies that every actuator (gripper jaws, vacuum generator, magnetic chuck) has a documented fail-safe state and that the justification for that state references a drop zone hazard analysis. Flags any actuator where the fail-safe state is undocumented or defaulted without justification.
+      </Accordion>
+      <Accordion title="Sensor integration completeness">
+        Confirms that every sensor listed in the sensor table has a complete signal path (sensor output → cable route → connection point → PLC/controller I/O address). Checks that safety-relevant signals (part-present, gripper fault) are assigned to safety-rated I/O channels consistent with the safety I/O matrix.
+      </Accordion>
+      <Accordion title="TCP definition traceability">
+        Verifies that the TCP frame coordinates are accompanied by a documented measurement method and that the orientation convention (ZYX Euler or quaternion) matches the robot controller's native convention.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+<Note>
+  **Chain position — cell design lane, second node.**
+  This skill consumes: [`robot-cell-layout`](/skills/robot-cell-layout) — cell footprint, reach envelope, and fixture geometry. Its xlsx output is consumed by:
+  - [`safety-io-matrix`](/skills/safety-io-matrix) — safety I/O matrix (gripper sensor signals become F-DI inputs)
+</Note>
+
+## Standards reference
+
+**ISO 10218-2:2011 (revised 2025)** — *Robots and robotic devices — Safety requirements for industrial robots — Part 2: Robot systems and integration*
+
+Clause 5.4.3 (end-effector requirements) specifies the fail-safe, payload, and TCP documentation requirements that this skill addresses.
+
+**ISO 9283:1998** — *Manipulating industrial robots — Performance criteria and related test methods*
+
+<Info>
+  ISO 9283 defines how robot performance (pose accuracy, repeatability, path velocity) is measured and reported. The EOAT specification references ISO 9283 payload definitions to ensure that the stated TCP payload is consistent with the robot's performance test conditions, not merely its structural rating.
+</Info>
+
+## Payload budget calculation
+
+```text
+TCP Payload Budget:
+
+  Part mass (kg):          [measured or from part drawing]
+  Tool body mass (kg):     [from EOAT manufacturer or CAD]
+  Sensors/cables (kg):     [sum of all mounted devices]
+  ─────────────────────────────────────────────────────
+  Total TCP payload (kg):  [sum of above]
+
+  Robot rated payload at reach R (kg): [from robot datasheet]
+  Payload margin (%): (Rated − Total) / Rated × 100
+
+  Wrist moment check:
+  M = Total_mass × CoM_offset_from_flange (kg·m)
+  Must be ≤ robot rated wrist moment (N·m)
+```
+
+<Warning>
+  Always use the robot's payload rating at the actual programmed reach, not the maximum payload at the minimum reach (zero extension). Payload rating falls significantly at extended reaches; consult the manufacturer's payload curve for the specific robot model.
+</Warning>
+
+<Tip>
+  When specifying a vacuum gripper, add a 20% mass contingency to account for workpiece surface variation, vacuum cup wear, and fitting accumulation. Vacuum grippers frequently run closer to the payload limit than pneumatic parallel grippers of equivalent rated force.
+</Tip>

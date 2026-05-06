@@ -1,0 +1,151 @@
+---
+title: "Common patterns: builder, reviewer, and xlsx contracts"
+description: "Patterns shared across all 76 skills: xlsx output format, reviewer dashboards, stable xlsx contracts, chain compounding, and the non-modification rule."
+---
+
+Every skill in the Robotics Skills Suite follows a small set of structural patterns that apply consistently across all ten clusters. Understanding these patterns lets you predict what any skill will produce, how to chain skills together, and how to phrase your trigger instructions. The builder+reviewer pairing is the core motif: every builder produces a structured xlsx workbook, and its matching reviewer runs a confirmation-measures checklist over that workbook and produces a visual dashboard. Nothing in the reviewer output modifies the source artifact — all findings are surfaced in a dedicated Recommended Actions tab.
+
+## Builder output format
+
+Every builder skill produces a multi-tab xlsx workbook. The visual style and tab naming follow a stable convention so that downstream reviewer skills and other builders can locate specific named ranges and fields reliably.
+
+<Tabs>
+  <Tab title="Builder output">
+    **Styling**
+
+    - Workbook theme: NAVY header rows with white text, Calibri 11pt body font
+    - PLr color coding: `a` = green, `b` = yellow, `c` = orange, `d` = red, `e` = dark red
+    - SIL color coding: SIL 1 = yellow, SIL 2 = orange, SIL 3 = red, SIL 4 = dark red
+    - Conditional formatting applied to risk rating and SIL/PLr determination cells
+
+    **Tab structure (example: ISO 12100 Risk Assessment)**
+
+    | Tab name | Contents |
+    |----------|----------|
+    | `Cover` | Project metadata, revision history, signatory fields |
+    | `Hazard Register` | Hazard ID, description, life-cycle phase, zone, severity, frequency, avoidability |
+    | `Risk Matrix` | Initial and residual risk scores with color-coded cells |
+    | `Risk Reduction` | Safeguard type, measure description, residual risk after measure |
+    | `Summary` | Aggregate counts, open items, overall conformance status |
+
+    **Formulas and named ranges**
+
+    Builders use named ranges (e.g., `PLr_Result`, `SIL_Claim`, `RiskScore_Residual`) so downstream skills can reference values by name rather than cell address. This is what makes the stable xlsx contract work.
+
+    ```text
+    Named range example:
+    PLr_Result        → Sheet: PLr Determination, Cell: F42
+    SIL_Claim         → Sheet: SIL Worksheet, Cell: G18
+    RiskScore_Residual → Sheet: Hazard Register, Column: M
+    ```
+  </Tab>
+
+  <Tab title="Reviewer output">
+    **Visual dashboard tab**
+
+    Every reviewer produces a `Dashboard` tab as the first tab of the output workbook. The dashboard contains:
+
+    - **KPI tiles** — overall conformance %, open findings count, critical findings count, sections reviewed
+    - **Pie chart** — distribution of Pass / Minor Gap / Major Gap / N/A ratings across all checklist items
+    - **Compliance bar chart** — per-section compliance score (horizontal bar, color-coded green/amber/red)
+    - **Stacked rating breakdown** — stacked bar chart showing Pass/Minor/Major/N/A counts by section
+    - **Findings table** — every non-Pass item listed with: Section, Clause, Finding description, Severity, Recommended Action
+
+    **Subsequent tabs**
+
+    | Tab name | Contents |
+    |----------|----------|
+    | `Dashboard` | Visual summary (KPI tiles, charts) |
+    | `Checklist` | Full confirmation-measures checklist with ratings |
+    | `Recommended Actions` | All gaps extracted with priority, owner, and due-date fields |
+    | `Metadata` | Reviewer skill version, source artifact hash, review date |
+  </Tab>
+</Tabs>
+
+## The non-modification rule
+
+<Note>
+  **Reviewers never modify source artifacts.** A reviewer skill reads the builder's xlsx output as a read-only input. All identified gaps, missing fields, calculation discrepancies, and conformance failures are written exclusively to the **Recommended Actions** tab in the reviewer's own output workbook. The original builder xlsx is never overwritten, patched, or annotated by the reviewer. This separation maintains a clean audit trail: the builder artifact represents the engineering claim, and the reviewer artifact represents the independent assessment of that claim.
+</Note>
+
+## Stable xlsx contracts
+
+The chain works because skills communicate via stable xlsx contracts — not through natural language summaries or copy-pasted values. Each downstream skill declares which named ranges or column headers it will read from the upstream artifact.
+
+**What "stable contract" means in practice:**
+
+```text
+Upstream artifact:  ISO 12100 Risk Assessment xlsx
+Named range:        PLr_Required_Global  →  "PLr d"
+
+Downstream skill:   ISO 13849-1 PLr Determination builder
+Contract field:     Reads PLr_Required_Global from upstream xlsx
+Effect:             PLr worksheet pre-populated with "PLr d" as the target
+```
+
+**Fields consumed by common downstream skills:**
+
+| Downstream skill | Upstream artifact | Fields consumed |
+|-----------------|-------------------|-----------------|
+| ISO 13849-1 PLr builder | ISO 12100 Risk Assessment | `PLr_Required_Global`, `Hazard_ID[]`, `RiskScore_Residual[]` |
+| ISO 10218 Compliance Matrix builder | PLr + SIL builder outputs | `PLr_Result`, `SIL_Claim`, `Architecture_Category` |
+| Declaration of Conformity builder | Compliance Matrix | `ConformanceStatus`, `StandardsList[]`, `OpenFindings_Count` |
+| IEC 62443 Risk Assessment builder | OT Asset Inventory | `Asset_ID[]`, `Asset_Zone[]`, `Firmware_Version[]` |
+
+<Info>
+  If a named range is missing or the column header has changed in an upstream xlsx, the downstream skill will flag a contract violation and halt rather than produce a workbook with silently incorrect values.
+</Info>
+
+## Chain compounding
+
+Because each link in the chain reads from a named range in the upstream artifact, a change to a single upstream value propagates automatically to every downstream skill that consumes it.
+
+```text
+Change:  ISO 12100 Risk Assessment — residual risk for Hazard H-007
+         updated from "PLr c" to "PLr d" after adding a light curtain
+
+Propagation:
+  → ISO 13849-1 PLr builder reads updated PLr_Required_Global → recalculates architecture
+  → ISO 10218 Compliance Matrix builder reads updated PLr_Result → updates conformance status
+  → Declaration of Conformity builder reads updated ConformanceStatus → revises DoC claim
+```
+
+<CardGroup cols={2}>
+  <Card title="Foundation chain" icon="arrow-down">
+    ISO 12100 → Lifecycle Plan → Robot Cell Scope → PLr/SIL → Compliance Matrix → Declaration of Conformity
+  </Card>
+  <Card title="Cobot lane" icon="hand">
+    ISO/TS 15066 Biomechanical Limits → SSM Plan → PFL Plan → Hand-Guiding Spec
+  </Card>
+  <Card title="AMR lane" icon="truck">
+    ISO 3691-4 Risk Assessment → Operating Envelope → Fleet Manager Architecture → Wireless Coexistence Plan
+  </Card>
+  <Card title="Cybersecurity lane" icon="lock">
+    IEC 62443 Risk Assessment → OT Asset Inventory → Zone & Conduit Plan
+  </Card>
+</CardGroup>
+
+## Trigger phrases
+
+Each skill file declares a triggering description in its frontmatter. You invoke a skill by phrasing your instruction naturally — Claude matches the phrase to the installed skill.
+
+**Builder trigger pattern:** Describe the artifact you want to produce plus the system under assessment.
+
+```text
+"Run an ISO 12100 risk assessment on a new cobot palletizing cell."
+"Generate the ISO 13849-1 PLr determination for the light curtain safety function."
+"Produce the IEC 62443 risk assessment for the pick-and-place cell OT network."
+"Create the ROS2 system architecture document for the mobile manipulation platform."
+```
+
+**Reviewer trigger pattern:** Reference the builder artifact you want reviewed.
+
+```text
+"Review the ISO 12100 risk assessment workbook I just uploaded."
+"Run the IEC 62443 reviewer on this risk assessment xlsx."
+"Review the Nav2 configuration document against ROS2 best practices."
+```
+
+<Tip>
+  Run the reviewer immediately after the builder in the same conversation. The reviewer can read the builder's xlsx output directly from the conversation context without requiring a separate upload step.
+</Tip>

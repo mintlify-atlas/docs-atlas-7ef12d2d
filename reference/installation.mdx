@@ -1,0 +1,181 @@
+---
+title: "Install skills in Claude Desktop and Cowork (76 skills)"
+description: "Step-by-step guide to installing individual .skill files and the 76-skill bundle zip in Claude Desktop or Cowork, including verification and updating."
+---
+
+Skills are installable instruction files that extend Claude with domain-specific expertise. The Robotics Skills Suite distributes each of its 76 skills as an individual `.skill` file, and also bundles all 76 together in a single zip archive for a full-suite installation. Once installed, a skill activates automatically when you phrase a request that matches its trigger description — no command syntax or slash commands required.
+
+## Prerequisites
+
+<Warning>
+  Installing and using Claude skills requires a **Claude Pro or Claude Team subscription**. Skills are not available on the Claude free tier. Verify your subscription level at [claude.ai/settings](https://claude.ai/settings) before proceeding.
+</Warning>
+
+You need one of the following:
+
+- **Claude Desktop** (macOS or Windows) — download from [claude.ai/download](https://claude.ai/download)
+- **Cowork** — access via [claude.ai](https://claude.ai) in your browser
+
+Both interfaces support the same `.skill` file format and installation flow.
+
+## Individual skill installation
+
+Use this method when you want to install one or a few specific skills without downloading the full bundle.
+
+<Steps>
+  <Step title="Download the .skill file">
+    Go to the `skills/` directory in the [robotics-skills-suite repository](https://github.com/jherrodthomas/robotics-skills-suite/tree/main/skills) on GitHub.
+
+    Click the skill file you want (for example, `iso12100-risk-assessment-builder.skill`) and then click **Download raw file**.
+
+    ```text
+    Filename pattern:
+      <skill-name>-builder.skill
+      <skill-name>-reviewer.skill
+
+    Example:
+      iso12100-risk-assessment-builder.skill
+      iso12100-risk-assessment-reviewer.skill
+    ```
+  </Step>
+
+  <Step title="Open Claude and navigate to Skills">
+    **Claude Desktop:** Click your profile icon → **Settings** → **Skills**
+
+    **Cowork (browser):** Click your profile icon in the top-right → **Manage skills**
+  </Step>
+
+  <Step title="Save the skill">
+    Click **Add skill** or **Save skill** (the label varies by interface version).
+
+    Select the `.skill` file you downloaded. Claude reads the skill frontmatter, confirms the skill name and trigger description, and adds it to your active skill list.
+  </Step>
+
+  <Step title="Confirm the skill is listed">
+    The skill appears by name in your Skills list. You do not need to enable or toggle it — skills are active immediately after saving.
+  </Step>
+</Steps>
+
+## Bundle installation
+
+<Tip>
+  If you want the full suite — all 76 builder and reviewer skills — use the bundle. It is faster than installing skills individually and guarantees you have every paired skill for the complete chain.
+</Tip>
+
+<Steps>
+  <Step title="Download the bundle zip">
+    From the repository root, download `robotics-skills-suite-bundle-76.zip`.
+
+    You can do this from the GitHub releases page or directly from the repository file listing.
+  </Step>
+
+  <Step title="Extract the archive">
+    Extract the zip to a folder on your machine. You will see 76 `.skill` files:
+
+    ```text
+    robotics-skills-suite-bundle-76/
+    ├── iso12100-risk-assessment-builder.skill
+    ├── iso12100-risk-assessment-reviewer.skill
+    ├── machinery-safety-lifecycle-plan-builder.skill
+    ├── machinery-safety-lifecycle-plan-reviewer.skill
+    ├── ... (72 more .skill files)
+    └── iso9283-performance-test-reviewer.skill
+    ```
+  </Step>
+
+  <Step title="Install each skill file">
+    In Claude Desktop or Cowork, go to your Skills settings and use **Add skill** to install each `.skill` file from the extracted folder.
+
+    <Info>
+      There is no batch-import option in Claude at this time. You install each `.skill` file individually. With 76 files this takes a few minutes. Start with the Foundation and Compliance clusters if you want to test the chain before installing everything.
+    </Info>
+  </Step>
+
+  <Step title="Verify all 76 skills are listed">
+    Your Skills list should show 76 entries — 38 builder skills and 38 reviewer skills. Each entry shows the skill name and its trigger description.
+  </Step>
+</Steps>
+
+## Verifying installation
+
+After installation, confirm that a skill is active by sending a trigger phrase in a new conversation.
+
+<Steps>
+  <Step title="Open a new conversation">
+    Start a fresh conversation in Claude Desktop or Cowork. Skills do not require any special mode or preamble.
+  </Step>
+
+  <Step title="Send a trigger phrase">
+    Use a natural language phrase that matches the skill's trigger description. For example, to test the ISO 12100 builder:
+
+    ```text
+    "Run an ISO 12100 risk assessment on a new cobot welding cell."
+    ```
+
+    If the skill is installed and active, Claude responds using the skill's structured template and produces the xlsx output.
+  </Step>
+
+  <Step title="Check for skill attribution">
+    Skill-driven responses typically include a reference to the skill being used at the start of the response. If Claude responds with a generic answer instead of a structured xlsx workflow, the skill may not be installed correctly — return to your Skills settings and verify the file is listed.
+  </Step>
+</Steps>
+
+## Updating skills
+
+When a new version of a skill is released, reinstall the updated file over the existing one.
+
+<Steps>
+  <Step title="Download the updated .skill file">
+    Download the new version of the `.skill` file from the repository. Check the repository releases or commit history for changelog notes on what changed.
+  </Step>
+
+  <Step title="Remove the old skill">
+    In your Skills settings, find the skill by name and click **Remove** or the trash icon.
+  </Step>
+
+  <Step title="Install the new version">
+    Use **Add skill** to install the downloaded file. The updated skill replaces the previous version immediately.
+  </Step>
+</Steps>
+
+<Note>
+  Updating a skill does not affect xlsx artifacts you have already produced. Existing workbooks remain unchanged. The updated skill only affects new runs after installation.
+</Note>
+
+## Trigger phrase syntax
+
+Skills activate through natural language — there is no command syntax to memorize. The patterns below cover the most common invocation styles.
+
+**Builder skills — produce a new artifact:**
+
+```text
+"Run an ISO 12100 risk assessment on [system description]."
+"Generate the ISO 13849-1 PLr determination for [safety function]."
+"Create the IEC 62443 risk assessment for [OT network description]."
+"Produce the ROS2 system architecture document for [robot platform]."
+"Build the ISO/TS 15066 biomechanical limits workbook for [cobot application]."
+"Generate a LOTO procedure for [equipment description]."
+```
+
+**Reviewer skills — assess an existing artifact:**
+
+```text
+"Review the ISO 12100 risk assessment xlsx I just uploaded."
+"Run the ISO 13849-1 reviewer on this PLr workbook."
+"Review the IEC 62443 risk assessment against the standard."
+"Check this Nav2 configuration document for compliance."
+```
+
+**Chained invocation — run builder then reviewer in sequence:**
+
+```text
+Step 1: "Run an ISO 12100 risk assessment on the new AMR fleet installation."
+         → Claude produces the risk assessment xlsx
+
+Step 2: "Now review that risk assessment."
+         → Claude runs the reviewer on the output from step 1
+```
+
+<Tip>
+  You do not need to re-upload the builder output to run the reviewer. In the same conversation, the reviewer can read the builder's xlsx output directly from context.
+</Tip>

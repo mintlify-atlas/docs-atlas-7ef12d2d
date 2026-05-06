@@ -1,0 +1,241 @@
+---
+title: "Cell design skills: layout, EOAT, and safety I/O matrix"
+description: "4 cell design skill pairs covering robot cell layout, EOAT specification, F-DI/F-DO safety I/O matrix, and Cat B–4 interlock and E-stop architecture."
+---
+
+The cell design cluster translates the safety requirements determined in the compliance and integrity cluster into concrete hardware and control system specifications. Four builder and reviewer pairs address the physical and electrical design of a robot cell: a cell layout workbook that formalises the footprint, fence, light curtains, and work zones; an end-of-arm tooling specification that captures gripping force, payload, sensor integration, and tooling change protocol; a safety I/O matrix that assigns every safety function to a specific F-DI or F-DO channel with its safety category and response time; and an interlock and E-stop architecture document that specifies the complete dual-channel E-stop network with Cat B through Cat 4 ratings and cable routing. Together these four documents provide the implementation-level specification that mechanical designers, PLC programmers, and safety system integrators work from.
+
+## Cluster flow
+
+<Steps>
+  <Step title="Produce the cell layout">
+    The `robot-cell-layout-builder` produces the spatial specification: robot mounting position, fence perimeter, gate locations, light curtain positions, presence-sensing device coverage, work zone boundaries, and pedestrian access routes. This workbook is the geometric reference for all subsequent cell design artifacts.
+  </Step>
+  <Step title="Specify the end-of-arm tooling">
+    The `eoat-spec-builder` produces the EOAT specification: gripping mechanism type, gripping force (N), maximum payload (kg), sensor integration (part-present, force, vision), tool-change protocol, and collision detection behaviour. EOAT mass and centre-of-gravity data feed back into the PLr calculation for tool-drop safety functions.
+  </Step>
+  <Step title="Build the safety I/O matrix">
+    The `safety-io-matrix-builder` produces the F-DI / F-DO channel assignment matrix — one row per safety I/O channel, with the safety function, device, safety category, performance level, and required response time. This matrix drives the safety PLC hardware selection and program structure.
+  </Step>
+  <Step title="Design the interlock and E-stop architecture">
+    The `interlock-estop-architecture-builder` produces the dual-channel E-stop network specification: E-stop device locations, cable routing (dual-channel, cross-monitored), safety relay or safety PLC connection diagram, Cat B/1/2/3/4 rating per loop, and response time calculation from actuator to motion inhibit.
+  </Step>
+</Steps>
+
+## Skill pairs
+
+<CardGroup cols={2}>
+  <Card title="Robot cell layout" icon="drafting-compass" href="/skills/robot-cell-layout">
+    **Standards:** ISO 10218-2:2025, ANSI/RIA R15.06-2012 R2017
+
+    Builder produces the cell footprint specification including fence geometry, interlocked access gate positions, light curtain mounting heights and coverage zones, robot work envelope overlay, and minimum safety distances per ISO 13857. Reviewer validates layout against ISO 10218-2 clause 5 spatial requirements and generates a compliance bar chart.
+  </Card>
+  <Card title="EOAT specification" icon="hand-holding-box" href="/skills/eoat-spec">
+    **Standards:** ISO 10218-2:2025, ISO 9283:1998
+
+    Builder produces the end-of-arm tooling specification: tooling type, gripping force (N), maximum payload (kg), sensor list (part-present, force/torque, vision), tooling mass and CoG, toolchain change protocol, and collision detection response. Reviewer validates payload and CoG data against robot rated payload and checks sensor integration completeness.
+  </Card>
+  <Card title="Safety I/O matrix" icon="table-list" href="/skills/safety-io-matrix">
+    **Standards:** ISO 13849-1:2023, IEC 62061:2021, IEC 61131-2
+
+    Builder produces the F-DI / F-DO channel assignment matrix with one row per safety I/O channel. Each row specifies: channel ID, safety function, connected device, safety category (B/1/2/3/4), performance level (PLa–PLe), required response time (ms), and wiring type (1NO+1NC, 2NC, etc.). Reviewer validates category and PL assignments against the PLr determination workbook and checks response time budget.
+  </Card>
+  <Card title="Interlock and E-stop architecture" icon="circle-stop" href="/skills/interlock-estop-architecture">
+    **Standards:** ISO 13849-1:2023, IEC 60204-1, NFPA 79
+
+    Builder produces the dual-channel E-stop network specification: E-stop pushbutton locations, cable routing schematic (dual-channel, cross-monitored), safety relay or safety PLC module assignment, category rating per E-stop loop, and response time calculation from actuator to drive inhibit. Reviewer validates dual-channel architecture, cross-monitoring, and response time against ISO 13849-1 category requirements.
+  </Card>
+</CardGroup>
+
+## Cell layout: spatial specification
+
+<AccordionGroup>
+  <Accordion title="Fence and gate geometry" icon="border-all" defaultOpen={false}>
+    The `robot-cell-layout-builder` produces a fence geometry table with one row per fence panel and gate:
+
+    | Column | Description |
+    |---|---|
+    | Element ID | Unique identifier (e.g., FENCE-N-01, GATE-E-01) |
+    | Type | Fixed panel / interlocked gate / large opening guard |
+    | Start coordinate (x, y) mm | Panel or gate start in cell coordinate frame |
+    | End coordinate (x, y) mm | Panel or gate end |
+    | Height mm | Panel height above floor |
+    | Standard | Applicable guarding standard (ISO 14120, ISO 13857) |
+    | Interlock PL | Required PL for interlocked gates (from PLr workbook) |
+
+    Minimum fence heights are derived from ISO 13857 Table 1 (safety distances for upper limbs) and Table 3 (safety distances for whole body), applied to the robot reach envelope overlaid on the layout.
+  </Accordion>
+  <Accordion title="Light curtain positions" icon="bars" defaultOpen={false}>
+    For each light curtain or area scanner in the cell, the builder records:
+
+    - Device ID and model
+    - Mounting position and height (top and bottom beam heights above floor, mm)
+    - Minimum object detection (MOD, mm)
+    - Protective field width and depth (mm)
+    - Safety distance (Ds) calculated per ISO 13855 formula:
+
+    ```text
+    Ds = K × (t1 + t2) + C
+
+    Where:
+      K  = hand/body approach speed (m/s), 2.0 m/s (hand), 1.6 m/s (body)
+      t1 = response time of the presence-sensing device (s)
+      t2 = stopping time of the robot (s)
+      C  = additional distance per ISO 13855 Table 1 based on MOD
+    ```
+
+    The reviewer checks that all light curtain mounting positions in the workbook produce a Ds that places the device outside the robot reach envelope with positive margin.
+  </Accordion>
+  <Accordion title="Work zone boundaries" icon="vector-square" defaultOpen={false}>
+    The builder records three nested zones derived from the robot reach envelope:
+
+    - **Restricted space** — the full robot reach envelope including all possible TCP positions; the outer boundary of the mechanically limited range of motion
+    - **Safeguarded space** — the space enclosed by the perimeter guarding (fence + light curtains); must contain the restricted space
+    - **Collaborative workspace** (cobot cells only) — the subset of the safeguarded space where human–robot collaboration is permitted under ISO/TS 15066 conditions
+
+    Each zone is defined as a polygon in the cell coordinate frame and exported as a table of vertex coordinates in the workbook.
+  </Accordion>
+</AccordionGroup>
+
+## Safety I/O matrix: F-DI / F-DO channel assignments
+
+The `safety-io-matrix-builder` produces one row per safety I/O channel in the safety PLC or safety relay system. Key columns:
+
+<AccordionGroup>
+  <Accordion title="Channel structure and wiring types" icon="cable-car" defaultOpen={false}>
+    Each F-DI (safe digital input) channel row specifies:
+
+    | Field | Values |
+    |---|---|
+    | Channel ID | F-DI-001, F-DI-002, … |
+    | Safety function | E-stop, gate monitor, light curtain, enabling device, … |
+    | Connected device | Model number and tag |
+    | Contact configuration | 1NO+1NC, 2NC, 1NC, NC with test pulse |
+    | Wiring | Single-channel / dual-channel / cross-monitored |
+    | Safety category | B, 1, 2, 3, or 4 (per ISO 13849-1) |
+    | Performance level | PLa, PLb, PLc, PLd, or PLe |
+    | Response time (ms) | Maximum allowable input-to-inhibit time |
+
+    Each F-DO (safe digital output) channel row specifies the actuator (drive enable, brake release, valve solenoid), output type (PNP, NPN, relay), load current, and the safety function it implements.
+  </Accordion>
+  <Accordion title="Safety category descriptions" icon="list-check" defaultOpen={false}>
+    The safety I/O matrix builder assigns one of five categories from ISO 13849-1 to each channel:
+
+    | Category | Architecture | Fault behaviour |
+    |---|---|---|
+    | B | Single channel, basic principles | Loss of safety function on first fault |
+    | 1 | Single channel, well-tried components | Loss of safety function on first fault, but low probability |
+    | 2 | Single channel with periodic test | Fault detected at next test cycle |
+    | 3 | Dual channel, no accumulation | Single fault does not cause loss of safety function |
+    | 4 | Dual channel, immediate detection | Single fault detected and accumulation tolerated |
+
+    The PLr determination workbook (upstream) specifies the minimum category for each safety function. The safety I/O matrix builder checks that the assigned category meets or exceeds the PLr requirement and flags any shortfall.
+  </Accordion>
+  <Accordion title="Response time budget" icon="stopwatch" defaultOpen={false}>
+    The response time budget for each safety channel is the maximum allowable time from input event (e.g., E-stop button pressed) to output action (drive inhibit). The builder computes:
+
+    ```text
+    t_budget = Ds / K - t_stopping
+
+    Where:
+      Ds         = safety distance (mm) from layout workbook
+      K          = approach speed (mm/s)
+      t_stopping = robot stopping time at maximum speed (ms)
+    ```
+
+    If `t_budget < 0`, the safety distance is insufficient for the robot's stopping time at the specified approach speed — the builder flags this as a design gap requiring fence repositioning or stopping time reduction.
+  </Accordion>
+</AccordionGroup>
+
+## Interlock and E-stop architecture: dual-channel design
+
+<AccordionGroup>
+  <Accordion title="E-stop categories B through 4" icon="circle-stop" defaultOpen={false}>
+    The `interlock-estop-architecture-builder` assigns a category to each E-stop loop based on the PLr requirement from the compliance cluster:
+
+    - **Cat B / Cat 1** — appropriate for PLa/PLb functions where a single fault does not create an unacceptable risk (e.g., auxiliary stop for non-safety peripheral)
+    - **Cat 2** — periodic testing confirms the stop function is available; typically used for enabling device circuits on low-risk functions
+    - **Cat 3** — dual-channel architecture where a single wiring fault or contact failure does not prevent the E-stop from functioning; standard for main E-stop circuits (PLc/PLd)
+    - **Cat 4** — dual-channel with immediate fault detection via cross-monitoring; required for PLe functions and any E-stop protecting against high-severity irreversible harm
+
+    The builder generates one architecture row per E-stop loop specifying: loop ID, connected devices (E-stop stations, gate contacts, light curtain OSSD), dual-channel wiring schematic reference, cross-monitoring method (safety relay diagnostics or safety PLC F-DI), and response time.
+  </Accordion>
+  <Accordion title="Dual-channel wiring and cross-monitoring" icon="code-branch" defaultOpen={false}>
+    For Cat 3 and Cat 4 E-stop loops, the builder specifies:
+
+    - Channel A and Channel B wiring paths (must be physically separated — different conduits or cable harnesses — to avoid common-cause cable damage)
+    - Cross-monitoring method: safety relay with guided-contact monitoring, or safety PLC F-DI reading both channels and comparing states within the input filter time
+    - Discrepancy detection time: maximum time between channel states before a fault is declared (typically ≤ 500 ms for Cat 3, immediate for Cat 4)
+    - Fault response: both channels driven to de-energised state on discrepancy detection
+
+    ```text
+    Cat 3 minimum requirement:
+    - Two independent NC contacts in series per channel
+    - Channels wired in separate conduits
+    - Discrepancy detected at next demand or within defined test interval
+    - MTTFd each channel ≥ Medium per ISO 13849-1 Annex K
+    ```
+  </Accordion>
+  <Accordion title="Response time calculation" icon="timer" defaultOpen={false}>
+    The builder calculates the total E-stop response time for each loop from actuator to motion inhibit:
+
+    ```text
+    t_response = t_actuator + t_device + t_logic + t_drive + t_brake
+
+    Where:
+      t_actuator = E-stop button contact open time (typically 5–20 ms)
+      t_device   = safety relay or F-DI filter + output switching time (ms)
+      t_logic    = safety PLC scan cycle time (ms), if applicable
+      t_drive    = drive STO (Safe Torque Off) activation time (ms)
+      t_brake    = holding brake engagement time (ms), if applicable
+    ```
+
+    The total `t_response` is compared against the response time budget from the safety I/O matrix. If the calculated response time exceeds the budget, the builder flags the shortfall and recommends hardware changes (faster safety relay, direct STO wiring, or increased safety distance).
+  </Accordion>
+</AccordionGroup>
+
+## EOAT specification: key parameters
+
+<AccordionGroup>
+  <Accordion title="Gripping force and payload" icon="hand-holding" defaultOpen={false}>
+    The EOAT specification captures gripping performance with three key parameters:
+
+    | Parameter | Unit | Notes |
+    |---|---|---|
+    | Gripping force | N | Force applied by gripper fingers at rated air pressure / current |
+    | Payload | kg | Maximum part mass the EOAT can safely handle at rated speed |
+    | Gripping force at part drop | N | Minimum gripping force before part-drop alarm is triggered |
+
+    The builder flags any EOAT payload that, combined with EOAT mass and maximum TCP acceleration, approaches the robot's rated payload capacity. A margin of ≥ 10% is recommended to account for dynamic loading.
+  </Accordion>
+  <Accordion title="Sensor integration" icon="microchip" defaultOpen={false}>
+    The EOAT specification documents all sensors integrated into the tooling:
+
+    - **Part-present sensor** — type (inductive, photoelectric, capacitive), detection range, output type (PNP/NPN), connection to robot controller or safety PLC F-DI
+    - **Force/torque sensor** — model, measurement range (N, N·m), overload rating, interface (EtherCAT, analog)
+    - **Vision** — camera model, resolution, FOV, lighting, processing unit, interface to robot controller
+    - **Collision detection** — whether the robot controller's built-in collision detection is enabled, threshold setting, and response action (stop + alarm vs. stop + retract)
+  </Accordion>
+</AccordionGroup>
+
+## Standards targeted
+
+| Standard | Scope |
+|---|---|
+| ISO 10218-2:2025 | Robot integration — cell layout, guarding, safeguarding |
+| ISO 13849-1:2023 | PLr, category, MTTFd, DC for safety I/O and E-stop architecture |
+| IEC 62061:2021 | SIL, PFHD for safety I/O channels |
+| ISO 13857:2019 | Safety distances for upper limbs and whole body |
+| ISO 13855:2010 | Positioning of safeguards with respect to approach speed |
+| ISO 14120:2015 | Guards — general requirements for fixed and movable guards |
+| IEC 60204-1:2016 | Safety of machinery — electrical equipment of machines |
+| NFPA 79:2021 | Electrical standard for industrial machinery (US) |
+| ANSI/RIA R15.06-2012 R2017 | North American robot integration requirements |
+
+<Warning>
+  Safety I/O channel categories and PLr assignments must be consistent between the safety I/O matrix and the PLr determination workbook. If PLr values are updated following a risk assessment revision, re-run the safety I/O matrix builder to propagate the new category requirements before finalising safety PLC hardware selection.
+</Warning>
+
+<Tip>
+  The interlock and E-stop architecture builder generates a response time summary row for each loop. Review this summary against the safety distance calculations from the cell layout before submitting for third-party review — mismatches between response time budget and calculated response time are among the most common findings in CE marking audits.
+</Tip>

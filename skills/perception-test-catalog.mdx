@@ -1,0 +1,75 @@
+---
+title: "Robot perception test catalog builder and reviewer"
+description: "Generate a robot perception test catalog with edge cases, adversarial inputs, false positive and false negative scenarios, and mAP/recall metric targets."
+---
+
+The `perception-test-catalog-builder` produces a structured test catalog for robot perception systems — object detectors, semantic segmentors, depth estimators, and pose estimators. It documents edge case scenarios, adversarial inputs, false positive and false negative test cases, and per-class metric targets. It is the terminal skill in the AI/ML governance lane, consuming the model card as its upstream input.
+
+<Note>
+**Chain position:** Consumes `model-card-builder` output. Terminal node in the AI/ML governance lane.
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Build a perception test catalog for [robot perception system description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | Edge Cases | Scenario description, environmental condition, expected behavior, pass/fail criterion |
+    | Adversarial Inputs | Attack type, input modification, expected model response, detection mechanism |
+    | False Positive Scenarios | Safe object/condition misclassified as hazard — scenario, rate target |
+    | False Negative Scenarios | Hazard missed by model — scenario, consequence severity, rate target |
+    | Metric Targets | Metric name, threshold, evaluation set, measurement method |
+    | Test Assets | Dataset split, annotation source, evaluation tool |
+
+    **Edge case categories:**
+
+    | Category | Examples |
+    |----------|---------|
+    | Lighting | Overexposure, underexposure, shadows, flicker, backlighting |
+    | Occlusion | Partial object occlusion, stacked objects, crowded scenes |
+    | Reflective surfaces | Shiny floors, metallic objects, glass panels |
+    | Motion blur | Fast-moving objects, camera shake during robot motion |
+    | Out-of-distribution | Objects not in training set, novel configurations |
+    | Environmental changes | Seasonal lighting shifts, facility rearrangement |
+
+    **Metric targets example:**
+
+    | Metric | Target | Evaluation set |
+    |--------|--------|---------------|
+    | mAP@0.5 | ≥ 0.85 | Held-out test set |
+    | Recall (safety-class) | ≥ 0.98 | Safety-critical object subset |
+    | False negative rate (person) | ≤ 0.01 | Person detection subset |
+    | Inference latency | ≤ 50 ms (P99) | Production hardware |
+  </Tab>
+  <Tab title="Reviewer">
+    The `perception-test-catalog-checklist-reviewer` validates the catalog for scenario breadth and threshold justification.
+
+    **Dashboard components:**
+    - KPI tiles: edge case count, adversarial scenario count, FP scenario count, FN scenario count
+    - Compliance bar: test coverage completeness
+    - Findings table: uncovered edge case categories, unjustified metric thresholds
+
+    **Checks performed:**
+    - All lighting condition categories represented
+    - Occlusion and partial visibility scenarios included
+    - Adversarial patch or data poisoning scenarios documented
+    - False negative rate targets are stricter for safety-critical classes
+    - Metric thresholds justified relative to model card intended use
+    - Evaluation set is independent from training data
+    - Out-of-distribution detection strategy documented
+  </Tab>
+</Tabs>
+
+## Standards coverage
+
+| Standard | Relevance |
+|----------|-----------|
+| ISO/IEC 5469 | Artificial intelligence — functional safety (perception in safety systems) |
+| ISO 13849-1 | Safety function performance requirements — applies when perception triggers safety functions |
+| Mitchell et al. Model Cards | Per-slice evaluation methodology referenced by this catalog |

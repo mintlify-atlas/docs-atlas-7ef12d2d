@@ -1,0 +1,149 @@
+---
+title: "Speed & Separation Monitoring plan builder and reviewer"
+description: "Build and review a Speed and Separation Monitoring plan with Sp formula calculations, detection system specs, and response time budgets per ISO/TS 15066:2016."
+---
+
+The Speed and Separation Monitoring plan builder produces a structured xlsx workbook specifying how a collaborative robot cell maintains a protective separation distance between the robot and any person in the collaborative workspace. The plan implements the SSM safeguarding mode defined in ISO/TS 15066:2016, calculating the minimum protective separation distance (Sp) using the standardised formula, specifying the detection system that enforces it, and documenting the full response time budget from detection to robot stop.
+
+<Tabs>
+  <Tab title="Builder">
+    The builder skill ingests the ISO/TS 15066 biomechanical limits xlsx (from the upstream builder) plus cell geometry, robot speed profile, and detection system parameters, then produces a multi-tab audit-ready SSM plan workbook.
+
+    **Trigger phrase**
+
+    ```text
+    Create an SSM plan for [cobot cell/application]
+    ```
+
+    **Workbook tabs**
+
+    <Steps>
+      <Step title="Sp Calculation Sheet">
+        Full parameterised calculation of the protective separation distance for each defined speed zone, with all formula variables documented and sourced.
+      </Step>
+      <Step title="Speed-Distance Profile">
+        Robot speed vs. required Sp table and chart, showing the speed reduction curve as a person approaches from the maximum detection range to the collaboration boundary.
+      </Step>
+      <Step title="Detection System Specification">
+        Sensor type, coverage geometry, safety integrity level, minimum object size detected, and response time contribution (Ts).
+      </Step>
+      <Step title="Response Time Budget">
+        Line-by-line breakdown of Tr (robot stop time) and Ts (system response time) with source data references and margin calculation.
+      </Step>
+      <Step title="Zone Map">
+        Annotated cell layout showing monitored zone boundaries, speed reduction zones, and collaboration boundary at minimum Sp.
+      </Step>
+    </Steps>
+
+    **Core Sp formula**
+
+    The protective separation distance is calculated as:
+
+    ```text
+    Sp = (vc + vh + vs) × (Tr + Ts) + Zs + Zd + Zr
+
+    Where:
+      vc  = maximum robot TCP speed at the relevant speed step (mm/s)
+      vh  = maximum human walking speed (typically 1600 mm/s per ISO/TS 15066)
+      vs  = speed measurement uncertainty of the detection system (mm/s)
+      Tr  = robot stop time from detection signal to full stop (s)
+      Ts  = detection system response time (s)
+      Zs  = position uncertainty of the safety system (mm)
+      Zd  = intrusion depth before detection (mm)
+      Zr  = position uncertainty of the robot (mm)
+    ```
+
+    <CardGroup cols={2}>
+      <Card title="Speed profile design" icon="gauge-high">
+        Multiple speed steps allow the robot to run at full speed when the human is far away and ramp down as they approach the collaboration boundary, maximising throughput.
+      </Card>
+      <Card title="Detection system selection" icon="radar">
+        Laser scanners, 3D time-of-flight cameras, and safety-rated vision systems all contribute different Ts values and Zs uncertainties — each must be documented.
+      </Card>
+      <Card title="Response time budget" icon="stopwatch">
+        Tr is measured from the robot controller's safety function specification. Ts is taken from the detection device's SIL/PLr datasheet. Both require traceable sources.
+      </Card>
+      <Card title="Zone map annotation" icon="map">
+        The output zone map must show the monitored zone, warning zone, and protective zone boundaries with dimensions referenced to the cell coordinate frame.
+      </Card>
+    </CardGroup>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill ingests the builder's SSM plan xlsx and the upstream biomechanical limits xlsx, then produces a confirmation-measures checklist and visual dashboard.
+
+    **Dashboard components**
+
+    <CardGroup cols={2}>
+      <Card title="KPI tile: Sp margin" icon="shield-check">
+        Actual vs. minimum Sp at each speed step, expressed as a safety margin percentage to the collaboration boundary.
+      </Card>
+      <Card title="Speed-distance compliance chart" icon="chart-line">
+        Overlay of programmed speed reduction curve vs. minimum required Sp curve across the full approach range.
+      </Card>
+      <Card title="Response time budget pie" icon="chart-pie">
+        Breakdown of the total response time (Tr + Ts) showing the proportion consumed by each system element.
+      </Card>
+      <Card title="Findings table" icon="triangle-exclamation">
+        Non-conformances with severity, affected formula parameter, and recommended corrective action.
+      </Card>
+    </CardGroup>
+
+    **Reviewer checks**
+
+    <AccordionGroup>
+      <Accordion title="Sp formula application">
+        Verifies that all six formula parameters (vc, vh, vs, Tr, Ts, Zs, Zd, Zr) are present, sourced, and correctly combined. Checks that vh uses the ISO/TS 15066 default (1600 mm/s) or a justified alternative.
+      </Accordion>
+      <Accordion title="Response time budget completeness">
+        Confirms that Tr is referenced to a measured or certified robot stop time (not estimated) and that Ts is taken from the detection device's safety-rated datasheet, not a typical-value specification.
+      </Accordion>
+      <Accordion title="Detection system coverage">
+        Checks that the sensor coverage geometry fully encloses the monitored zone with no blind spots, and that the minimum detectable object size is appropriate for the human presence detection task.
+      </Accordion>
+      <Accordion title="Speed-distance relationship">
+        Validates that the programmed speed reduction steps are conservative relative to the calculated Sp at each step — i.e., the robot is not running faster than permitted by the current separation distance.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+<Note>
+  **Chain position — SSM plan sits in the cobot lane.**
+  Upstream dependency:
+  - [`iso15066-biomechanical-limits`](/skills/iso15066-biomechanical-limits) — provides contact force/pressure baseline and contact type classification
+
+  Parallel peer skill:
+  - [`pfl-plan`](/skills/pfl-plan) — the alternative or complementary ISO/TS 15066 safeguarding mode
+
+  SSM and PFL can be applied simultaneously in different zones of the same cell. Neither consumes the other's output; both consume the biomechanical limits workbook.
+</Note>
+
+## Standard reference
+
+**ISO/TS 15066:2016, Section 5.5** — *Speed and Separation Monitoring (SSM)*
+
+SSM is one of four collaborative operation modes defined in ISO/TS 15066. The standard requires that the protective separation distance be maintained at all times; if the separation distance is violated, the robot must stop or reduce speed before the human can reach the collaboration boundary.
+
+<Info>
+  The human speed parameter vh defaults to 1600 mm/s in ISO/TS 15066 Annex B. A lower value may be used only if justified by a site-specific study with documented evidence — this justification is subject to reviewer scrutiny.
+</Info>
+
+## Sp sensitivity analysis
+
+Understanding which parameters dominate the Sp budget helps designers optimise the system:
+
+| Parameter | Typical contribution | Design lever |
+|---|---|---|
+| `vc` (robot speed) | 30–50% | Reduce max speed in inner zone |
+| `vh` (human speed) | 20–40% | Fixed at 1600 mm/s unless justified |
+| `Tr` (robot stop time) | 15–30% | Select robot with certified fast-stop |
+| `Ts` (sensor response) | 5–15% | Choose low-latency safety scanner |
+| `Zs + Zd + Zr` (position uncertainty) | 5–20% | Reduce sensor uncertainty, improve calibration |
+
+<Tip>
+  The largest gains in Sp reduction (allowing the robot to work closer to humans at higher speed) typically come from reducing Tr through robot selection or brake design — not from reducing vh or sensor uncertainty.
+</Tip>
+
+<Warning>
+  SSM does not eliminate contact risk — it maintains separation to prevent contact. If contact is possible in any operational mode (including fault conditions), the PFL safeguarding mode analysis must also be performed.
+</Warning>

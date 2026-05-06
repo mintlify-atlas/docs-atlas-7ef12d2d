@@ -1,0 +1,141 @@
+---
+title: "IEC 62061 SIL determination builder and reviewer skill"
+description: "Determine and review the Safety Integrity Level for each safety function per IEC 62061:2021, including PFHD, beta factor, subsystem architecture, and HFT."
+---
+
+The IEC 62061 SIL determination skill pair applies the functional safety standard for safety-related electrical control systems to establish a quantitative Safety Integrity Level (SIL) for each machinery safety function. Where ISO 13849-1 uses a category and architecture approach, IEC 62061:2021 takes a probabilistic approach: every subsystem in the safety function is modelled with a probability of dangerous failure per hour (PFHD), a beta factor for common cause failures, and a hardware fault tolerance (HFT) that determines the minimum SIL achievable from a given architecture. The resulting PFHD for the complete safety function must fall within the target SIL range, and the achieved SIL must meet or exceed the SIL required (SILr) derived from the ISO 12100 risk assessment.
+
+<Note>
+**Chain position:** Consumes the output of [`iso12100-risk-assessment`](/skills/iso12100-risk-assessment). Runs in parallel with [`iso13849-plr`](/skills/iso13849-plr). Its output feeds into:
+- [`iso10218-compliance-matrix`](/skills/iso10218-compliance-matrix)
+- [`ansi-r1506-compliance-matrix`](/skills/ansi-r1506-compliance-matrix)
+- [`declaration-of-conformity`](/skills/declaration-of-conformity)
+</Note>
+
+## Trigger phrase
+
+```text
+Determine the SIL for [safety function] using IEC 62061
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder reads risk data from the ISO 12100 workbook and produces an IEC 62061 SIL determination workbook with quantitative PFHD calculations for each safety function.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="SIL determination" icon="arrow-up-right-dots">
+        Risk-based SIL target (SILr) derived from ISO 12100 severity and frequency parameters using the IEC 62061 risk graph, covering SIL 1, 2, and 3 targets.
+      </Card>
+      <Card title="Subsystem decomposition" icon="diagram-project">
+        Safety function decomposed into subsystems (sensor, logic, actuator), each with PFHD value, hardware fault tolerance (HFT), and architecture type (A or B per IEC 61508).
+      </Card>
+      <Card title="PFHD calculation" icon="calculator">
+        Per-subsystem PFHD computation with component failure rate (λ), beta factor (CCF), diagnostic test interval (T1), proof test interval (T2), and HFT. Total safety function PFHD = sum of subsystem PFHDs.
+      </Card>
+      <Card title="SIL verification" icon="shield-halved">
+        Comparison of achieved PFHD against SIL target ranges. Confirmation that hardware fault tolerance satisfies minimum HFT requirements per IEC 62061 Table 4.
+      </Card>
+    </CardGroup>
+
+    ### SIL target ranges
+
+    | SIL | PFHD range (per hour) |
+    |---|---|
+    | SIL 1 | 10⁻⁵ to < 10⁻⁶ |
+    | SIL 2 | 10⁻⁶ to < 10⁻⁷ |
+    | SIL 3 | 10⁻⁷ to < 10⁻⁸ |
+
+    ```text
+    Safety function PFHD = Σ PFHD_subsystem(i)
+
+    Subsystem PFHD (1oo1 architecture, type A):
+      PFHD = λDU × (1 - β) + λDU_CCF × β
+
+    Hardware fault tolerance minimum (IEC 62061 Table 4):
+      SIL 1: HFT ≥ 0 (type A) or HFT ≥ 1 (type B)
+      SIL 2: HFT ≥ 1 (type A) or HFT ≥ 1 (type B)
+      SIL 3: HFT ≥ 1 (type A) or HFT ≥ 2 (type B)
+    ```
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Import risk assessment data">
+        Read severity, frequency, and avoidance parameters from the ISO 12100 residual risk summary for each safety function requiring SIL determination.
+      </Step>
+      <Step title="Determine SILr">
+        Apply the IEC 62061 risk graph parameters (consequence, frequency of exposure, probability of avoiding the hazard, probability of the unwanted occurrence) to derive SILr.
+      </Step>
+      <Step title="Decompose safety function">
+        Break the safety function into sensor, logic, and actuator subsystems. Identify architecture type (A or B) and hardware fault tolerance for each.
+      </Step>
+      <Step title="Compute subsystem PFHD">
+        Apply IEC 62061 formulae using component failure rate data (from manufacturer declarations or IEC 61508 generic data), beta factor, and diagnostic/proof test intervals.
+      </Step>
+      <Step title="Sum and verify total PFHD">
+        Sum subsystem PFHDs to get the safety function total PFHD. Verify it falls within the SILr target range and that HFT meets Table 4 minimums.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer verifies PFHD calculation accuracy, beta factor justification, and the correctness of subsystem decomposition against the IEC 62061 normative requirements.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="Safety function SIL summary" icon="gauge-high">
+        Total safety functions, count where achieved SIL ≥ SILr, count non-compliant (PFHD outside target range or HFT below minimum), and count pending failure rate data.
+      </Card>
+      <Card title="PFHD breakdown chart" icon="chart-bar">
+        Stacked bar per safety function showing subsystem PFHD contributions (sensor, logic, actuator) relative to the SIL target boundary.
+      </Card>
+      <Card title="Beta factor review" icon="percent">
+        Table of beta factors applied per subsystem with justification references. Flags any beta factor below 2% (minimum for unprotected systems) without documented justification.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings with subsystem reference, clause reference, finding type, and recommended action.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="PFHD calculation accuracy">
+        Verifies that failure rate data (λ) is sourced from component manufacturer SIL declarations, IEC 61508 generic data tables, or field reliability data, and that the correct formula variant is applied for the subsystem architecture (1oo1, 1oo2, 2oo2, etc.).
+      </Accordion>
+      <Accordion title="Beta factor justification">
+        Confirms that the beta factor for each subsystem is justified by evidence of measures taken to reduce common cause failures (physical separation, diversity, environmental testing), and that the value is consistent with IEC 62061 Annex F guidance (typical range 1–10%).
+      </Accordion>
+      <Accordion title="Subsystem decomposition">
+        Checks that the subsystem boundary definitions are consistent with IEC 62061 §6.3, that no subsystem spans more than one IEC 61508 element type, and that the architecture type (A or B) classification is correct for each subsystem based on the known proportion of failures.
+      </Accordion>
+      <Accordion title="Hardware fault tolerance">
+        Verifies that the HFT assigned to each subsystem meets the minimum required by IEC 62061 Table 4 for the target SIL and architecture type, and that HFT is not claimed at a level unsupported by the hardware architecture.
+      </Accordion>
+    </AccordionGroup>
+
+    <Warning>
+      IEC 62061 requires that PFHD values for subsystems are traceable to manufacturer SIL declarations or published failure rate data. If a subsystem uses estimated failure rates without a documented source, the reviewer flags it as a critical finding that must be resolved before the compliance matrix can be completed.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Standards and clause coverage
+
+| IEC 62061:2021 clause | Topic |
+|---|---|
+| §5 | Safety integrity requirements |
+| §6 | Design and development of SRECS |
+| §6.3 | Subsystem design requirements |
+| §7 | Verification and validation |
+| §12 | Safety validation |
+| Annex F | Common cause failure beta factor guidance |
+| IEC 61508 | Failure rate data sources |
+
+<Tip>
+When both ISO 13849-1 PLr and IEC 62061 SIL determinations are run for the same safety function, use the stricter result as the evidence basis in the compliance matrix. Document the rationale for standard selection in the machinery safety lifecycle plan documentation register.
+</Tip>

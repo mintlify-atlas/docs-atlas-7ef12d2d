@@ -1,0 +1,75 @@
+---
+title: "ROS2 system architecture spec builder and reviewer"
+description: "Generate a ROS2 system architecture spec: node graph, topic/service/action catalog, DDS QoS profiles, and lifecycle state machine for industrial robot systems."
+---
+
+The `ros2-system-architecture-builder` produces a comprehensive ROS2 system architecture specification covering the node graph, topic catalog, service catalog, action catalog, DDS QoS policies, and lifecycle state machine definitions. It is the entry point for the ROS2 lane — every downstream ROS2 skill (URDF, behavior trees, Nav2, TF tree) consumes this architecture document as its upstream input.
+
+<Note>
+**Chain position:** Entry point for the ROS2 lane. Feeds into `urdf-model-spec-builder`, `behavior-tree-spec-builder`, `nav2-config-builder`, and `tf-tree-spec-builder`.
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Document the ROS2 system architecture for [robot system description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | Node Graph | Node name, package, executable, namespace, lifecycle managed (Y/N), initial state |
+    | Topic Catalog | Topic name, message type, QoS profile, publisher nodes, subscriber nodes |
+    | Service Catalog | Service name, service type, server node, client nodes |
+    | Action Catalog | Action name, action type, server node, client nodes, feedback fields |
+    | DDS QoS Profiles | Profile name, reliability (RELIABLE/BEST_EFFORT), durability, history depth, deadline |
+    | Parameters | Node, parameter name, type, default value, description |
+
+    **Example topic catalog row:**
+    ```yaml
+    topic: /scan
+    type: sensor_msgs/msg/LaserScan
+    qos_profile: sensor_data
+    reliability: BEST_EFFORT
+    durability: VOLATILE
+    publishers: [lidar_driver_node]
+    subscribers: [slam_toolbox, nav2_costmap_2d]
+    ```
+
+    **DDS QoS profiles commonly used:**
+
+    | Profile | Reliability | Durability | Use case |
+    |---------|-------------|------------|----------|
+    | sensor_data | BEST_EFFORT | VOLATILE | High-rate sensor streams |
+    | services_default | RELIABLE | VOLATILE | Services and actions |
+    | parameters | RELIABLE | TRANSIENT_LOCAL | Parameter events |
+    | system_default | RELIABLE | VOLATILE | General topics |
+  </Tab>
+  <Tab title="Reviewer">
+    The `ros2-system-architecture-checklist-reviewer` validates the architecture document for completeness and consistency.
+
+    **Dashboard components:**
+    - KPI tiles: node count, topic count, service count, action count, QoS profile count
+    - Compliance bar: architecture coverage completeness
+    - Findings table: unmatched publisher/subscriber pairs, missing QoS profiles, undocumented nodes
+
+    **Checks performed:**
+    - Every topic has at least one publisher and one subscriber documented
+    - Every action server has a corresponding client node documented
+    - All lifecycle-managed nodes have initial state specified
+    - QoS reliability matches topic usage pattern (sensor data → BEST_EFFORT)
+    - DDS domain ID specified and consistent across all nodes
+    - Parameter defaults documented for all nodes
+  </Tab>
+</Tabs>
+
+## Standards and compatibility
+
+| Item | Detail |
+|------|--------|
+| ROS 2 distributions | Humble (LTS), Iron, Jazzy (LTS) |
+| DDS middleware | Fast DDS, Cyclone DDS, Connext |
+| Lifecycle nodes | rclcpp_lifecycle — manage, configure, activate, deactivate, cleanup, shutdown |
+| QoS standard | OMG DDS specification |

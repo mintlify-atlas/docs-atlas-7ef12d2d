@@ -1,0 +1,77 @@
+---
+title: "OSHA 1910.147 LOTO procedure builder and reviewer skill"
+description: "Generate OSHA 1910.147-compliant lockout/tagout procedures with energy source identification, device assignments, and isolation sequences."
+---
+
+The `loto-procedure-builder` produces a complete lockout/tagout procedure workbook compliant with OSHA 1910.147 — the Control of Hazardous Energy standard. It identifies all energy sources (electrical, pneumatic, hydraulic, stored/potential, gravity), assigns LOTO devices to each, and generates a step-by-step procedure for authorized employees. It is the second operational skill in the chain, consuming the robot SOP and feeding directly into the operator training matrix.
+
+<Note>
+**Chain position:** Consumes `robot-sop-builder` output. Feeds into `operator-training-matrix-builder`. Terminal if no training matrix is needed.
+</Note>
+
+<Tabs>
+  <Tab title="Builder">
+    **Trigger phrase:**
+    ```text
+    Write a LOTO procedure for [machine/robot cell description]
+    ```
+
+    **Workbook output — tabs:**
+
+    | Tab | Content |
+    |-----|---------|
+    | Energy Sources | Electrical panels, pneumatic supplies, hydraulic circuits, gravity loads, stored energy (springs, capacitors) |
+    | LOTO Devices | Hasp, padlock, lockout tag, valve lockout, plug lockout — assigned per energy source |
+    | Procedure Steps | Notify → Shutdown → Isolation → Apply LOTO → Release stored energy → Verify de-energization |
+    | Authorized Employees | Named list with LOTO device assignments |
+    | Restoration Steps | Verify clear → Remove LOTO → Notify → Re-energize |
+
+    **OSHA 1910.147 procedural sequence:**
+
+    <Steps>
+      <Step title="Notify affected employees">
+        Inform all employees in the area that the machine will be shut down and locked out.
+      </Step>
+      <Step title="Normal shutdown">
+        Follow the robot SOP shutdown sequence to bring the machine to a complete stop.
+      </Step>
+      <Step title="Energy isolation">
+        Operate all isolating devices to disconnect every identified energy source.
+      </Step>
+      <Step title="Apply LOTO devices">
+        Each authorized employee applies their personal padlock and tag to every isolating device.
+      </Step>
+      <Step title="Release stored energy">
+        Bleed pneumatic lines, discharge capacitors, block gravity loads, release spring tension.
+      </Step>
+      <Step title="Verify de-energization">
+        Attempt to start the machine (jog button test) and verify zero energy with a meter.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The `loto-procedure-checklist-reviewer` runs a confirmation-measures checklist against the LOTO procedure workbook and produces a visual dashboard.
+
+    **Dashboard components:**
+    - KPI tiles: energy source count, device assignment completeness %, procedural step count
+    - Compliance bar: OSHA 1910.147 clause coverage
+    - Findings table: gaps with recommended actions (e.g., missing stored energy release step)
+
+    **Checks performed:**
+    - All energy types identified (electrical, pneumatic, hydraulic, stored, gravity)
+    - Every energy source has a named isolating device and LOTO device assigned
+    - Six-step OSHA procedure present and in correct order
+    - Stored energy release step explicitly included
+    - Verification step (attempt to start + meter check) present
+    - Authorized employee list populated
+    - Restoration procedure included
+  </Tab>
+</Tabs>
+
+## Standards coverage
+
+| Standard | Relevance |
+|----------|-----------|
+| OSHA 1910.147 | Primary — Control of Hazardous Energy (Lockout/Tagout) |
+| OSHA 1910.212 | General machine guarding — context for energy isolation points |
+| ISO 10218-2 | Robot installation commissioning and maintenance safety |

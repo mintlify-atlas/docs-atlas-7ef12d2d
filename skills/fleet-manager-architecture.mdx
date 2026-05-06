@@ -1,0 +1,167 @@
+---
+title: "AMR fleet manager architecture builder and reviewer"
+description: "Build a multi-AMR fleet manager architecture covering VDA 5050 interface, traffic management, deadlock avoidance, and vehicle state machine per ISO 3691-4."
+---
+
+The AMR fleet manager architecture builder produces a structured xlsx workbook that specifies the software and communication architecture required to coordinate a fleet of autonomous mobile robots within the operating envelope defined by the upstream zone specification. The architecture covers the VDA 5050 protocol interface between vehicles and the fleet manager, traffic management zone logic, deadlock avoidance strategies, order management workflow, vehicle state machine, and communication redundancy. This workbook provides the architecture-level specification that system integrators use to configure or procure a fleet management system.
+
+<Tabs>
+  <Tab title="Builder">
+    The builder skill ingests the operating envelope xlsx and the AMR system description, then produces a fleet manager architecture specification workbook with sufficient detail for system design, procurement specification, and safety case development.
+
+    **Trigger phrase**
+
+    ```text
+    Design a fleet manager architecture for [AMR fleet]
+    ```
+
+    **Workbook tabs**
+
+    <Steps>
+      <Step title="Architecture Overview">
+        System context diagram reference, fleet manager role in the site automation hierarchy (ERP → WMS → Fleet Manager → AMR), and key interfaces to upstream and downstream systems.
+      </Step>
+      <Step title="VDA 5050 Interface Specification">
+        Message type catalogue (instantActions, order, orderUpdate, state, visualization, connection), MQTT topic structure, QoS settings, and field-level mapping for each message type.
+      </Step>
+      <Step title="Traffic Management Zones">
+        Fleet manager zone definitions derived from the operating envelope, with zone type mapping, zone entry/exit logic, capacity limits, and priority rules for multi-AMR conflict resolution.
+      </Step>
+      <Step title="Deadlock Avoidance Strategy">
+        Documented deadlock scenarios (head-on, four-way, convoy), the avoidance algorithm (priority assignment, token passing, or dynamic rerouting), and escalation procedure if deadlock occurs.
+      </Step>
+      <Step title="Order Management Workflow">
+        Order lifecycle (created → assigned → dispatched → executing → completed → archived), order modification rules, order cancellation handling, and WMS integration interface.
+      </Step>
+      <Step title="Vehicle State Machine">
+        AMR operational states (idle, navigating, executing, charging, error, emergency stop) with all transitions, trigger conditions, and fleet manager visibility of state per vehicle.
+      </Step>
+      <Step title="Communication Architecture">
+        Network topology, MQTT broker configuration, message latency requirements, redundancy design (broker failover, dual network paths), and safety-critical message delivery guarantees.
+      </Step>
+    </Steps>
+
+    **VDA 5050 protocol overview**
+
+    VDA 5050 is an open protocol developed by the German Association of the Automotive Industry (VDA) and VDMA for standardised AGV and AMR fleet communication. It defines the MQTT message format and topic structure for all fleet manager to vehicle interactions.
+
+    <CardGroup cols={2}>
+      <Card title="Order messages" icon="list-ordered">
+        Fleet manager sends drive and action orders to the AMR as a sequence of nodes and edges with associated actions. The AMR executes and reports progress via state messages.
+      </Card>
+      <Card title="State messages" icon="chart-line">
+        AMR reports its current position, battery state, load status, active warnings, errors, and order execution progress to the fleet manager at a configurable reporting interval.
+      </Card>
+      <Card title="instantAction messages" icon="bolt">
+        Fleet manager sends immediate commands (e-stop, soft stop, start charging, cancel order) that interrupt normal order execution. Safety-critical path — requires delivery confirmation.
+      </Card>
+      <Card title="Visualization messages" icon="display">
+        AMR reports its position and heading for fleet visualisation display. Not safety-critical — lower QoS acceptable. Used for operator monitoring dashboards.
+      </Card>
+    </CardGroup>
+
+    **Traffic management zone logic**
+
+    ```text
+    Zone entry/exit model (mutex zone pattern):
+
+    1. AMR requests entry to zone Z via instantAction "zoneRequest"
+    2. Fleet manager checks zone capacity (max concurrent occupants)
+    3. If capacity available: grant entry → AMR proceeds
+    4. If at capacity: AMR waits at designated hold point
+    5. AMR sends "zoneExit" instantAction on leaving zone Z
+    6. Fleet manager decrements zone occupancy, grants entry to next waiting AMR
+
+    Deadlock detection:
+    - Monitor all AMR hold queues for circular wait condition
+    - Timeout threshold: configurable per zone (default 30 s)
+    - Escalation: priority yield command to lowest-priority AMR in cycle
+    ```
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill ingests the fleet manager architecture xlsx and the upstream operating envelope xlsx, then produces a confirmation-measures checklist and visual dashboard covering protocol compliance, deadlock coverage, and communication resilience.
+
+    **Dashboard components**
+
+    <CardGroup cols={2}>
+      <Card title="KPI tile: VDA 5050 coverage" icon="protocol">
+        Count of VDA 5050 message types with complete field mapping vs. total required message types for the declared feature set.
+      </Card>
+      <Card title="State machine completeness matrix" icon="diagram-project">
+        All AMR states × all fleet manager visible events, highlighting any missing transitions that would result in an unreachable or stuck state.
+      </Card>
+      <Card title="Deadlock scenario coverage chart" icon="chart-bar">
+        Documented deadlock scenarios vs. the canonical deadlock scenario library, showing gap count per scenario type.
+      </Card>
+      <Card title="Findings table" icon="triangle-exclamation">
+        Non-conformances with severity, affected architecture element, and recommended corrective action.
+      </Card>
+    </CardGroup>
+
+    **Reviewer checks**
+
+    <AccordionGroup>
+      <Accordion title="VDA 5050 compliance">
+        Verifies that all implemented message types conform to the VDA 5050 specification version declared in the architecture, that mandatory fields are not marked optional in the implementation mapping, and that topic naming follows the VDA 5050 MQTT topic structure.
+      </Accordion>
+      <Accordion title="Deadlock scenario coverage">
+        Checks that at minimum three canonical deadlock patterns (head-on single corridor, four-way intersection, chain/convoy circular wait) are documented in the deadlock avoidance strategy, with an avoidance mechanism specified and a tested escalation procedure for each.
+      </Accordion>
+      <Accordion title="Communication redundancy">
+        Confirms that the communication architecture specifies MQTT broker redundancy (primary + standby or clustered broker), dual network path capability, and a defined behaviour for each AMR in the event of fleet manager communication loss exceeding the safety timeout.
+      </Accordion>
+      <Accordion title="State machine completeness">
+        Reviews the vehicle state machine for coverage of all operational states including error and emergency stop states, confirms that every state has at least one exit transition, and checks that the fleet manager has visibility of all safety-critical state transitions in near real-time.
+      </Accordion>
+    </AccordionGroup>
+  </Tab>
+</Tabs>
+
+<Note>
+  **Chain position — intermediate node in the AMR lane.**
+  Upstream dependency:
+  - [`operating-envelope`](/skills/operating-envelope) — provides zone definitions that are implemented as traffic management zones in the fleet manager
+
+  Downstream consumer:
+  - [`wireless-coexistence-plan`](/skills/wireless-coexistence-plan) — the fleet manager communication architecture drives the wireless network requirements for MQTT latency, coverage, and RSSI margins
+</Note>
+
+## Standard reference
+
+**VDA 5050** — *Interface for the communication between automated guided vehicles (AGV) and a master control*
+
+**ISO 3691-4:2020, Section 5.10** — *Control systems*
+
+**ANSI/RIA R15.08-2** — *System-level requirements for industrial mobile robots*
+
+VDA 5050 was developed by VDA and VDMA to enable AGV and AMR systems from different vendors to interoperate with a common fleet management interface, eliminating proprietary communication protocols as a barrier to multi-vendor fleets.
+
+<Info>
+  VDA 5050 Version 2.0 introduced significant extensions including the `connection` message for broker health monitoring, `factsheet` messages for vehicle capability declaration, and enhanced action parameter typing. Always specify the VDA 5050 version number in the architecture — breaking changes between minor versions affect field-level compatibility.
+</Info>
+
+## Fleet manager deployment pattern
+
+```text
+Site automation hierarchy:
+
+  ERP / WMS (SAP, Oracle, etc.)
+       │  REST/OPC-UA order interface
+       ▼
+  Fleet Manager (FMS)
+       │  VDA 5050 / MQTT
+       ▼
+  MQTT Broker (Mosquitto / HiveMQ / EMQX)
+       │  per-vehicle topics
+       ▼
+  AMR Fleet (Wi-Fi / 5G private network)
+  AMR-001 ... AMR-N
+```
+
+<Tip>
+  Specify the MQTT QoS level for each message type explicitly: QoS 0 (at most once) is acceptable for visualization messages, QoS 1 (at least once) is required for order and state messages, and QoS 2 (exactly once) should be evaluated for instantAction safety-critical commands to prevent duplicate command execution.
+</Tip>
+
+<Warning>
+  The fleet manager is a non-safety-rated system in most architectures — safety functions (e-stop, speed limiting, collision avoidance) are implemented on the AMR safety controller, not the fleet manager. The fleet manager can initiate a soft stop but cannot be the sole means of implementing a safety function.
+</Warning>

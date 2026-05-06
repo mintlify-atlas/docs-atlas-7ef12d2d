@@ -1,0 +1,124 @@
+---
+title: "OEE-based robot field acceptance builder and reviewer"
+description: "Generate an OEE-based on-site field acceptance plan with availability, performance, quality rate targets, handover checklist, and training verification records."
+---
+
+The robot field acceptance skill pair produces an OEE-based on-site acceptance workbook that formalises the transition from commissioning to production operation. Overall Equipment Effectiveness (OEE) is calculated as Availability × Performance × Quality, with the industry standard target for new installations typically set at 85% or above. The builder translates customer uptime requirements into measurable OEE targets, defines the measurement window and sampling plan, generates the handover documentation checklist, and produces operator sign-off and training completion verification sheets. It targets ISO 10218-2 handover requirements and OSHA 1910.212 machine guarding requirements, and serves as the terminal node of the V&V lane — the point at which formal responsibility for the robot system transfers from the integrator to the customer.
+
+<Note>
+**Chain position:** This skill consumes output from:
+- [`robot-hil-test-catalog`](/skills/robot-hil-test-catalog) — HIL test results referenced as a pre-condition for beginning OEE measurement
+
+This is the **terminal node** of the V&V lane. No downstream V&V skill consumes this workbook.
+</Note>
+
+## Trigger phrase
+
+```text
+Create a field acceptance plan for [robot installation]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder produces a multi-tab xlsx workbook styled in NAVY/Calibri with OEE component color coding (green ≥ target, amber within 5%, red below target). Each tab covers a distinct element of the field acceptance plan.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="OEE targets and plan" icon="chart-line">
+        OEE target (default 85%), decomposed into Availability, Performance, and Quality sub-targets, with the planned measurement window duration (minimum 5 production shifts recommended) and shift schedule.
+      </Card>
+      <Card title="Availability measurement" icon="clock">
+        Planned production time, unplanned downtime event log template, MTBF and MTTR tracking columns, and automatic Availability calculation formula.
+      </Card>
+      <Card title="Performance efficiency" icon="gauge">
+        Ideal cycle time, actual cycle time log, speed loss event categorisation (minor stoppages, reduced speed), and automatic Performance calculation formula.
+      </Card>
+      <Card title="Quality rate" icon="circle-check">
+        Good parts count, reject and rework count, defect categorisation log, and automatic Quality calculation formula with traceability to robot motion parameters.
+      </Card>
+      <Card title="Handover checklist" icon="clipboard-list">
+        Complete handover documentation checklist: as-built drawings, risk assessment, maintenance manual, spare parts list, safety validation report, FAT/SAT signed protocols, and HIL test results.
+      </Card>
+      <Card title="Signoff and training" icon="graduation-cap">
+        Operator sign-off sheet with production start authorisation, training completion verification table (operator, maintenance, safety roles), and integrator handover declaration.
+      </Card>
+    </CardGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Ingest HIL test results">
+        Confirm that HIL test catalog results are available and that all safety function validation tests have passed before proceeding to OEE measurement planning.
+      </Step>
+      <Step title="Define OEE targets">
+        Decompose the customer's uptime requirement into Availability, Performance, and Quality sub-targets, defaulting to the 85% OEE industry benchmark unless customer specifications differ.
+      </Step>
+      <Step title="Design measurement plan">
+        Define the measurement window (shift count, duration), the data collection method (PLC-sourced cycle counters, manual event log, or MES integration), and the data sampling interval.
+      </Step>
+      <Step title="Generate handover checklist">
+        Produce the complete handover documentation checklist, with each item mapped to the document type, the responsible party, and the required delivery date.
+      </Step>
+      <Step title="Format signoff and training sheets">
+        Output operator sign-off sheets with pre-populated safety qualification fields and a training completion table covering operator, maintenance technician, and safety officer roles.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer skill consumes the builder's xlsx output without modifying it. It checks OEE target justification, handover checklist completeness, and training verification inclusion, then produces a visual dashboard.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="KPI tiles" icon="gauge-high">
+        OEE target value, handover checklist completion rate, training roles covered count, and open items blocking production start.
+      </Card>
+      <Card title="OEE decomposition chart" icon="chart-bar">
+        Stacked bar showing the Availability, Performance, and Quality sub-targets alongside the combined OEE target, with benchmark reference line at 85%.
+      </Card>
+      <Card title="Handover completeness panel" icon="clipboard-check">
+        Item-by-item status of the handover documentation checklist: green for received, amber for pending, red for missing, with responsible party and due date columns.
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings listing item ID, finding type (missing document / unjustified target / missing training role / incomplete signoff), and recommended corrective action.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="OEE target justification">
+        Verifies that the OEE target and its Availability, Performance, and Quality sub-targets are explicitly stated, that any target below 85% is accompanied by a written justification, and that the measurement window is sufficient to produce statistically meaningful results.
+      </Accordion>
+      <Accordion title="Handover checklist completeness">
+        Checks that the handover checklist includes as-built drawings, the risk assessment, maintenance manual, spare parts list, safety validation report, signed FAT and SAT protocols, and HIL test results — and flags any missing item.
+      </Accordion>
+      <Accordion title="Training verification inclusion">
+        Validates that training completion records are required for at minimum three roles (operator, maintenance technician, safety officer), that each record references a specific training course or competency assessment, and that sign-off is required before production start.
+      </Accordion>
+      <Accordion title="OSHA 1910.212 compliance reference">
+        Confirms that the field acceptance plan references machine guarding requirements and that the guarding configuration verified at SAT is documented in the handover package.
+      </Accordion>
+    </AccordionGroup>
+
+    <Warning>
+      Production start is not authorised until the OEE measurement period is complete and all handover checklist items are confirmed received. Any item marked missing or pending will appear as a blocking finding.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Standards and clause coverage
+
+| Standard | Clause | Topic |
+|---|---|---|
+| ISO 10218-2 | §5.10 | Commissioning, handover, and production start |
+| OSHA 1910.212 | (a) | Machine guarding — general requirements |
+| IEC 62061:2021 | §8.2 | Validation completion before handover |
+| ISO 13849-1:2023 | §10 | Validation evidence required for handover package |
+
+<Tip>
+Start the OEE measurement period only after all HIL tests are passed and all handover documents are received. Beginning OEE measurement with open punch list items introduces ambiguity in downtime attribution and can result in artificially low Availability scores that delay customer sign-off.
+</Tip>

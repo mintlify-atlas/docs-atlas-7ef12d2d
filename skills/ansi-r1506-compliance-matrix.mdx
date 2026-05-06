@@ -1,0 +1,131 @@
+---
+title: "ANSI R15.06 compliance matrix builder and reviewer"
+description: "Build and review a clause-by-clause ANSI/RIA R15.06-2012 R2017 compliance matrix for robot installations targeting the North American market."
+---
+
+The ANSI R15.06 compliance matrix skill pair produces the North American equivalent of the ISO 10218 compliance matrix, performing a clause-by-clause evaluation of a robot installation against ANSI/RIA R15.06-2012 (reaffirmed 2017) — the US industrial robot safety standard published jointly by the American National Standards Institute and the Robotic Industries Association. ANSI/RIA R15.06-2012 is technically equivalent to ISO 10218-1/-2:2011 in its normative content but adds US-specific annexes covering OSHA regulatory alignment, North American electrical code references (NFPA 79), and RIA-specific guidance that applies to installations in the United States. The builder ingests the robot cell scope and ISO 12100 risk assessment outputs and produces a clause-annotated matrix with compliance status, evidence references, and gap notes tailored for the US market.
+
+<Note>
+**Chain position:** Runs in parallel with [`iso10218-compliance-matrix`](/skills/iso10218-compliance-matrix). Both feed into:
+- [`declaration-of-conformity`](/skills/declaration-of-conformity)
+
+Consumes outputs of [`robot-cell-scope`](/skills/robot-cell-scope) and [`iso12100-risk-assessment`](/skills/iso12100-risk-assessment).
+</Note>
+
+## Trigger phrase
+
+```text
+Build an ANSI R15.06 compliance matrix for [robot installation]
+```
+
+## Builder and reviewer
+
+<Tabs>
+  <Tab title="Builder">
+    The builder produces an ANSI/RIA R15.06-2012 clause-by-clause compliance matrix workbook with US-specific handling for OSHA regulatory references and North American electrical code requirements.
+
+    ### Workbook tabs
+
+    <CardGroup cols={2}>
+      <Card title="R15.06 Part 1 matrix" icon="robot">
+        Clause-by-clause evaluation of ANSI R15.06 Part 1 (robot) requirements, aligned with ISO 10218-1:2011 structure. Typically assessed against the robot manufacturer's Declaration of Conformity or US Safety Data Sheet.
+      </Card>
+      <Card title="R15.06 Part 2 matrix" icon="wrench">
+        Clause-by-clause evaluation of ANSI R15.06 Part 2 (robot system and integration) requirements with US-specific interpretations, OSHA cross-references, and NFPA 79 electrical requirements.
+      </Card>
+      <Card title="US-specific annex review" icon="flag">
+        Evaluation of ANSI R15.06 normative and informative annexes covering OSHA General Industry standards (29 CFR 1910), NFPA 79, NFPA 70E, and RIA TR R15.306 technical report guidance.
+      </Card>
+      <Card title="Gap and evidence register" icon="file-lines">
+        Consolidated gap register and evidence register with document IDs, responsible persons, and status — structured identically to the ISO 10218 matrix for cross-referencing between the two matrices.
+      </Card>
+    </CardGroup>
+
+    ### US-specific requirements handled
+
+    <AccordionGroup>
+      <Accordion title="OSHA regulatory alignment">
+        ANSI R15.06 installations in the US must also satisfy applicable OSHA standards. The builder cross-references key clauses to OSHA 29 CFR 1910.212 (general machine guarding), 1910.147 (lockout/tagout), and 1910.303 (electrical). Each OSHA cross-reference is annotated in the evidence column with a note distinguishing the ANSI consensus standard requirement from the OSHA regulatory requirement.
+      </Accordion>
+      <Accordion title="NFPA 79 electrical requirements">
+        North American robot installations must comply with NFPA 79 (Electrical Standard for Industrial Machinery) for electrical enclosure ratings, wiring methods, and overcurrent protection. The builder flags clauses where NFPA 79 requirements are more stringent than the ISO 60204-1 equivalent referenced in ISO 10218.
+      </Accordion>
+      <Accordion title="RIA technical report guidance">
+        The builder references RIA TR R15.306 (risk assessment guidance for robot systems) and RIA TR R15.406 (safeguarding guidance) where applicable, annotating clauses with relevant technical report section numbers.
+      </Accordion>
+    </AccordionGroup>
+
+    ### What the builder produces
+
+    <Steps>
+      <Step title="Import cell scope and risk assessment">
+        Read robot type, zone definitions, safeguarding strategy, and risk data from upstream skill outputs.
+      </Step>
+      <Step title="Populate Part 1 matrix">
+        Evaluate ANSI R15.06 Part 1 clauses against the robot manufacturer's US conformance documentation. Where the robot carries CE marking only, flag clauses that require additional US-specific evidence.
+      </Step>
+      <Step title="Evaluate Part 2 clauses">
+        For each Part 2 clause, assign compliance status, populate the evidence reference, and annotate any US-specific requirement (OSHA, NFPA 79) in the notes column.
+      </Step>
+      <Step title="Review US-specific annexes">
+        Systematically evaluate each normative annex of ANSI R15.06 and document compliance status. Flag informative annexes that contain guidance relevant to open gaps.
+      </Step>
+      <Step title="Build gap and evidence registers">
+        Consolidate all non-compliant and open/pending items into the gap register. Cross-reference gap IDs with the ISO 10218 compliance matrix gap register where the same physical gap applies to both standards.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Reviewer">
+    The reviewer verifies clause coverage, confirms that US-specific requirements are properly handled, and checks that evidence references are traceable.
+
+    ### Dashboard components
+
+    <CardGroup cols={2}>
+      <Card title="Compliance status KPIs" icon="gauge-high">
+        Total clauses evaluated, count compliant, non-compliant, not applicable, and open/pending — separately for Part 1, Part 2, and the US-specific annexes.
+      </Card>
+      <Card title="US requirement flag chart" icon="flag">
+        Count of clauses with active OSHA cross-references, NFPA 79 cross-references, and RIA technical report annotations, highlighting clauses where US requirements exceed the ISO baseline.
+      </Card>
+      <Card title="Evidence availability" icon="file-circle-check">
+        Status breakdown of all evidence documents in the evidence register (available / draft / missing), with separate counts for US-specific documents (OSHA inspection records, NFPA 79 electrical inspection certificates).
+      </Card>
+      <Card title="Findings table" icon="table">
+        Row-level findings with clause number, finding type, and recommended action. Includes a "US-specific" tag for findings that arise from ANSI/OSHA requirements not present in the ISO 10218 matrix.
+      </Card>
+    </CardGroup>
+
+    ### Reviewer checks
+
+    <AccordionGroup>
+      <Accordion title="Clause coverage">
+        Verifies that every normative clause of ANSI/RIA R15.06-2012 Part 1 and Part 2 is present in the matrix with a status entry. Flags any clause row left blank or marked "TBD" without a target date.
+      </Accordion>
+      <Accordion title="US-specific requirement handling">
+        Confirms that OSHA cross-references are present for all clauses where an OSHA standard applies, that NFPA 79 electrical requirements are annotated for all electrical installation clauses, and that any clause marked "not applicable" for the US market has a written justification.
+      </Accordion>
+      <Accordion title="Evidence references">
+        Checks that all compliance-critical clauses have at least one evidence reference, that document IDs exist in the evidence register, and that US-specific evidence documents (OSHA records, NFPA inspection certificates) are listed separately from the ISO evidence set.
+      </Accordion>
+    </AccordionGroup>
+
+    <Info>
+      ANSI/RIA R15.06-2012 was reaffirmed in 2017 without technical changes. If your project references the 2012 edition, it is current — no reissue has occurred. The next major revision is expected to align with ISO 10218:2025; check with RIA for the current harmonization timeline.
+    </Info>
+  </Tab>
+</Tabs>
+
+## Standards and cross-references
+
+| Standard | Role in this matrix |
+|---|---|
+| ANSI/RIA R15.06-2012 R2017 | Primary standard — clause-by-clause evaluation |
+| ISO 10218-1/-2:2011 | Technical equivalent — shared normative content |
+| OSHA 29 CFR 1910.212 | US regulatory cross-reference — general machine guarding |
+| OSHA 29 CFR 1910.147 | US regulatory cross-reference — lockout/tagout |
+| NFPA 79 | North American electrical standard for industrial machinery |
+| RIA TR R15.306 | Risk assessment technical report — informative guidance |
+
+<Warning>
+ANSI R15.06 compliance does not by itself constitute OSHA compliance. OSHA standards are federal law in the US; ANSI standards are voluntary consensus standards. Where OSHA has a specific standard covering a hazard (e.g., 1910.147 for lockout), the OSHA standard governs. Document the regulatory basis for each guarding decision separately from the ANSI consensus standard basis.
+</Warning>
